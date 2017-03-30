@@ -45,6 +45,7 @@ import tornadofx.*
 import java.awt.Desktop
 import java.net.URI
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.regex.Pattern
 import java.util.stream.Collectors
 
@@ -154,26 +155,34 @@ class KagaView {
 
     @FXML private fun onStartStopButton() {
         if (!Kaga.KANCOLLE_AUTO.isRunning()) {
-            Thread {
-                Platform.runLater {
-                    kagaStatus.text = runningText
-                    startStopButton.text = "Stop"
-                    startStopButton.style = "-fx-background-color: red"
-                    profileSelectionHBox.isDisable = true
-                }
-                Kaga.KANCOLLE_AUTO.startAndWait()
-                Platform.runLater {
-                    kagaStatus.text = notRunningText
-                    startStopButton.text = "Start"
-                    startStopButton.style = "-fx-background-color: lightgreen"
-                    profileSelectionHBox.isDisable = false
-                }
-            }.start()
-            Kaga.CONSOLE_STAGE.toFront()
-            Kaga.STATS_STAGE.toFront()
+            startKancolleAuto()
         } else {
             Kaga.KANCOLLE_AUTO.stop()
         }
+    }
+
+    @FXML private fun startWithoutWritingConfig() {
+        if (!Kaga.KANCOLLE_AUTO.isRunning()) startKancolleAuto(false)
+    }
+
+    private fun startKancolleAuto(saveConfig: Boolean = true) {
+        Thread {
+            Platform.runLater {
+                kagaStatus.text = runningText
+                startStopButton.text = "Stop"
+                startStopButton.style = "-fx-background-color: red"
+                profileSelectionHBox.isDisable = true
+            }
+            Kaga.KANCOLLE_AUTO.startAndWait(saveConfig = saveConfig)
+            Platform.runLater {
+                kagaStatus.text = notRunningText
+                startStopButton.text = "Start"
+                startStopButton.style = "-fx-background-color: lightgreen"
+                profileSelectionHBox.isDisable = false
+            }
+        }.start()
+        Kaga.CONSOLE_STAGE.toFront()
+        Kaga.STATS_STAGE.toFront()
     }
 
     @FXML private fun clearCrashLogs() {
@@ -187,6 +196,27 @@ class KagaView {
         AlertFactory.info(
                 content = "$count crash logs have been deleted!"
         ).showAndWait()
+    }
+
+    @FXML private fun openLatestCrashLog() {
+        val log = Files.walk(Kaga.CONFIG.kancolleAutoRootDirPath.resolve("crashes"), 1)
+                .filter { Files.isRegularFile(it) }
+                .filter { it.fileName.toString().endsWith(".log") }
+                .map(Path::toFile)
+                .sorted().collect(Collectors.toList())
+                .lastOrNull()
+        if (log == null) {
+            AlertFactory.warn(
+                    content = "No crash logs were found!"
+            ).showAndWait()
+        } else {
+            if (Desktop.isDesktopSupported()) {
+                Thread({
+                    Desktop.getDesktop().open(log)
+                }).start()
+                Kaga.ROOT_STAGE.toBack()
+            }
+        }
     }
 
     @FXML private fun openHowto() {
