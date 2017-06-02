@@ -41,6 +41,7 @@ class MiscTabView {
     @FXML private lateinit var configSubSwitchBtn: Button
     @FXML private lateinit var replaceLimitComboBox: ComboBox<Int>
     @FXML private lateinit var fatigueSwitchCheckBox: CheckBox
+    @FXML private lateinit var useBucketsCheckBox: CheckBox
     @FXML private lateinit var enableLbasButton: CheckBox
     @FXML private lateinit var group1CheckBox: CheckBox
     @FXML private lateinit var group2CheckBox: CheckBox
@@ -58,7 +59,7 @@ class MiscTabView {
     }
 
     private fun setValues() {
-        updateGroupCheckBoxes(Kaga.PROFILE!!.lbas.enabledGroups)
+        updateGroupCheckBoxes(Kaga.PROFILE.lbas.enabledGroups)
         val damageLevels = listOf("Light damage", "Moderate damage", "Critical damage", "Null")
         val damageConverter = object : StringConverter<Int>() {
             override fun toString(int: Int?): String = damageLevels[int ?: 3]
@@ -70,11 +71,12 @@ class MiscTabView {
     }
 
     private fun createBindings() {
-        with(Kaga.PROFILE!!) {
+        with(Kaga.PROFILE) {
             with(submarineSwitch) {
                 enableSubSwitchButton.bind(enabledProperty)
                 replaceLimitComboBox.bind(replaceLimitProperty)
                 fatigueSwitchCheckBox.bind(fatigueSwitchProperty)
+                useBucketsCheckBox.bind(useBucketsProperty)
             }
             with(lbas) {
                 enableLbasButton.bind(enabledProperty)
@@ -93,7 +95,7 @@ class MiscTabView {
     }
 
     private fun setGroups(newVal: Boolean, group: Int) {
-        with(Kaga.PROFILE!!.lbas) {
+        with(Kaga.PROFILE.lbas) {
             if (newVal) {
                 enabledGroups.add(group)
             } else {
@@ -114,9 +116,9 @@ class MiscTabView {
 
     @FXML private fun onConfigureGroup3NodesButton() = configureNode(3)
 
-    @FXML private fun onConfigureSubSwitchButton() {
-        find(SubSwitchChooserView::class).openModal()
-    }
+    @FXML private fun onConfigureSubSwitchButton() =
+            find(SubSwitchChooserView::class).openModal()
+
 
     private fun configureNode(group: Int) {
         val loader = FXMLLoader(Kaga::class.java.classLoader.getResource("views/single-list.fxml"))
