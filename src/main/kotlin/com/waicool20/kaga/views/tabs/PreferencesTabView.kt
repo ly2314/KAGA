@@ -31,6 +31,7 @@ import javafx.scene.control.Spinner
 import javafx.scene.control.SpinnerValueFactory
 import java.awt.Desktop
 import java.nio.file.Path
+import kotlin.concurrent.thread
 
 class PreferencesTabView {
     @FXML private lateinit var preventLockCheckBox: CheckBox
@@ -40,6 +41,7 @@ class PreferencesTabView {
     @FXML private lateinit var debugModeEnableCheckBox: CheckBox
     @FXML private lateinit var showDebugCheckBox: CheckBox
     @FXML private lateinit var showStatsCheckBox: CheckBox
+    @FXML private lateinit var checkForUpdatesCheckBox: CheckBox
     @FXML private lateinit var sikulixJarPathLink: Hyperlink
     @FXML private lateinit var kancolleAutoRootPathLink: Hyperlink
 
@@ -60,9 +62,7 @@ class PreferencesTabView {
 
     private fun openFile(path: Path) {
         if (Desktop.isDesktopSupported()) {
-            Thread({
-                Desktop.getDesktop().open(path.toFile())
-            }).start()
+            thread { Desktop.getDesktop().open(path.toFile()) }
             Kaga.ROOT_STAGE.toBack()
         }
     }
@@ -76,6 +76,7 @@ class PreferencesTabView {
             debugModeEnableCheckBox.selectedProperty().bindBidirectional(debugModeEnabledProperty)
             showDebugCheckBox.selectedProperty().bindBidirectional(showDebugOnStartProperty)
             showStatsCheckBox.selectedProperty().bindBidirectional(showStatsOnStartProperty)
+            checkForUpdatesCheckBox.selectedProperty().bindBidirectional(checkForUpdatesProperty)
         }
     }
 

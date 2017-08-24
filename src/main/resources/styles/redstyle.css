@@ -18,19 +18,10 @@
  *
  */
 
-package com.waicool20.kaga.util
+.split-menu-button > .arrow-button {
+    -fx-background-color: darkred;
+}
 
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import kotlin.concurrent.thread
-
-
-class StreamGobbler(val process: Process?) {
-    fun run() {
-        val handler = Thread.UncaughtExceptionHandler { _, throwable ->
-            if (throwable.message != "Stream closed") throw throwable // Ignore stream closed errors
-        }
-        thread { BufferedReader(InputStreamReader(process?.inputStream)).forEachLine(::println) }.uncaughtExceptionHandler = handler
-        thread { BufferedReader(InputStreamReader(process?.errorStream)).forEachLine(::println) }.uncaughtExceptionHandler = handler
-    }
+.split-menu-button > .label {
+    -fx-background-color: red ;
 }

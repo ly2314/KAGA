@@ -34,9 +34,9 @@ import com.waicool20.kaga.views.tabs.sortie.SortieTabView
 import javafx.application.Platform
 import javafx.fxml.FXML
 import javafx.geometry.Side
-import javafx.scene.control.Button
 import javafx.scene.control.ComboBox
 import javafx.scene.control.Label
+import javafx.scene.control.SplitMenuButton
 import javafx.scene.control.TabPane
 import javafx.scene.layout.HBox
 import javafx.stage.WindowEvent
@@ -46,7 +46,7 @@ import java.awt.Desktop
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.stream.Collectors
+import kotlin.concurrent.thread
 import kotlin.streams.toList
 
 
@@ -55,7 +55,7 @@ class KagaView {
     private val notRunningText = "Kancolle Auto is not running!"
 
     @FXML private lateinit var kagaStatus: Label
-    @FXML private lateinit var startStopButton: Button
+    @FXML private lateinit var startStopButton: SplitMenuButton
     @FXML private lateinit var profileNameComboBox: ComboBox<String>
     @FXML private lateinit var profileSelectionHBox: HBox
     @FXML private lateinit var tabpane: TabPane
@@ -74,6 +74,7 @@ class KagaView {
         Kaga.ROOT_STAGE.addEventHandler(WindowEvent.WINDOW_HIDDEN, { Kaga.KANCOLLE_AUTO.stop() })
         tabpane.setSideWithHorizontalText(Side.LEFT)
         createBindings()
+        checkStartStopButton()
     }
 
     private fun createBindings() {
@@ -166,24 +167,40 @@ class KagaView {
         if (!Kaga.KANCOLLE_AUTO.isRunning()) startKancolleAuto(false)
     }
 
+    @FXML private fun stopAtPort() {
+        if (Kaga.KANCOLLE_AUTO.isRunning()) Kaga.KANCOLLE_AUTO.stopAtPort()
+    }
+
     private fun startKancolleAuto(saveConfig: Boolean = true) {
-        Thread {
+        thread {
             Platform.runLater {
                 kagaStatus.text = runningText
                 startStopButton.text = "Stop"
-                startStopButton.style = "-fx-background-color: red"
+                checkStartStopButton()
                 profileSelectionHBox.isDisable = true
             }
             Kaga.KANCOLLE_AUTO.startAndWait(saveConfig)
             Platform.runLater {
                 kagaStatus.text = notRunningText
                 startStopButton.text = "Start"
-                startStopButton.style = "-fx-background-color: lightgreen"
+                checkStartStopButton()
                 profileSelectionHBox.isDisable = false
             }
-        }.start()
+        }
         Kaga.CONSOLE_STAGE.toFront()
         Kaga.STATS_STAGE.toFront()
+    }
+
+    private fun checkStartStopButton() {
+        startStopButton.apply {
+            val color = if (text == "Start") "green" else "red"
+            stylesheets.clear()
+            stylesheets.add("styles/${color}style.css")
+            items.partition { it.id.contains(text, true) }.let {
+                it.first.forEach { it.isVisible = true }
+                it.second.forEach { it.isVisible = false }
+            }
+        }
     }
 
     @FXML private fun clearCrashLogs() {
@@ -212,9 +229,7 @@ class KagaView {
             ).showAndWait()
         } else {
             if (Desktop.isDesktopSupported()) {
-                Thread({
-                    Desktop.getDesktop().open(log)
-                }).start()
+                thread { Desktop.getDesktop().open(log) }
                 Kaga.ROOT_STAGE.toBack()
             }
         }
@@ -229,11 +244,21 @@ class KagaView {
 
     @FXML private fun openRepo() {
         if (Desktop.isDesktopSupported()) {
-            Thread({
-                Desktop.getDesktop().browse(URI("https://github.com/waicool20/KAGA"))
-            }).start()
+            thread { Desktop.getDesktop().browse(URI("https://github.com/waicool20/KAGA")) }
             Kaga.ROOT_STAGE.toBack()
         }
+    }
+
+    @FXML private fun openAbout() {
+        AlertFactory.info(
+                title = "KAGA - About",
+                content = """
+Kancolle Auto GUI App by waicool20
+
+Version: ${Kaga.VERSION_INFO.version}
+Kancolle-Auto Compatibility: ${Kaga.VERSION_INFO.kcAutoCompatibility}
+""".trimMargin()
+        ).showAndWait()
     }
 
     @FXML private fun openConsole() = Kaga.CONSOLE_STAGE.show()
