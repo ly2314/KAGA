@@ -70,7 +70,8 @@ class KagaView {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @FXML fun initialize() {
+    @FXML
+    fun initialize() {
         Kaga.ROOT_STAGE.addEventHandler(WindowEvent.WINDOW_HIDDEN, { Kaga.KANCOLLE_AUTO.stop() })
         tabpane.setSideWithHorizontalText(Side.LEFT)
         createBindings()
@@ -249,15 +250,17 @@ class KagaView {
         }
     }
 
+    @FXML private fun checkForUpdates() = Kaga.checkForUpdates(true)
+
     @FXML private fun openAbout() {
         AlertFactory.info(
                 title = "KAGA - About",
                 content = """
-Kancolle Auto GUI App by waicool20
+                        Kancolle Auto GUI App by waicool20
 
-Version: ${Kaga.VERSION_INFO.version}
-Kancolle-Auto Compatibility: ${Kaga.VERSION_INFO.kcAutoCompatibility}
-""".trimMargin()
+                        Version: ${Kaga.VERSION_INFO.version}
+                        Kancolle-Auto Compatibility: ${Kaga.VERSION_INFO.kcAutoCompatibility}
+                        """.trimIndent()
         ).showAndWait()
     }
 

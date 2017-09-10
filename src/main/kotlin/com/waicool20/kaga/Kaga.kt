@@ -23,12 +23,14 @@ package com.waicool20.kaga
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.waicool20.kaga.config.KagaConfig
 import com.waicool20.kaga.config.KancolleAutoProfile
 import com.waicool20.kaga.handlers.KeyboardIncrementHandler
 import com.waicool20.kaga.handlers.MouseIncrementHandler
 import com.waicool20.kaga.handlers.ToolTipHandler
 import com.waicool20.kaga.kcauto.KancolleAuto
+import com.waicool20.kaga.util.AlertFactory
 import com.waicool20.kaga.util.LineListenerOutputStream
 import com.waicool20.kaga.util.TeeOutputStream
 import com.waicool20.kaga.views.ConsoleView
@@ -118,7 +120,7 @@ object Kaga {
 
     lateinit var ROOT_STAGE: Stage
 
-    val VERSION_INFO = mapper.readValue(javaClass.classLoader.getResourceAsStream("version.txt"), VersionInfo::class.java) ?: VersionInfo()
+    val VERSION_INFO = mapper.readValue<VersionInfo>(javaClass.classLoader.getResourceAsStream("version.txt"))
 
     val CONSOLE_STAGE by lazy {
         Stage().apply {
@@ -190,7 +192,7 @@ object Kaga {
         System.exit(0)
     }
 
-    fun checkForUpdates() {
+    fun checkForUpdates(showNoUpdatesDialog: Boolean = false) {
         logger.info("KAGA - ${VERSION_INFO.version}")
         if (!CONFIG.checkForUpdates) {
             logger.info("Update checking disabled, skipping")
@@ -209,11 +211,11 @@ object Kaga {
                                 headerText = null
                                 val pane = FlowPane()
                                 val label = Label("""
-                                |A new update for KAGA is available: ${latestVersion.version}
-                                |Current version: ${VERSION_INFO.version}
-                                |
-                                |Get the update over here:
-                                """.trimMargin())
+                                A new update for KAGA is available: ${latestVersion.version}
+                                Current version: ${VERSION_INFO.version}
+
+                                Get the update over here:
+                                """.trimIndent())
                                 val link = json.at("/html_url").asText()
                                 val hyperlink = Hyperlink(link).apply {
                                     setOnAction {
@@ -228,6 +230,17 @@ object Kaga {
                             }
                         }
                     } else {
+                        if (showNoUpdatesDialog) {
+                            Platform.runLater {
+                                AlertFactory.info(
+                                        content = """
+                                    No updates so far...
+
+                                    Current version: ${VERSION_INFO.version}
+                                    """.trimIndent()
+                                ).showAndWait()
+                            }
+                        }
                         logger.info("No updates so far....")
                     }
                 } catch (e: Exception) {
