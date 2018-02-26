@@ -21,63 +21,56 @@
 package com.waicool20.kaga.views.tabs
 
 import com.waicool20.kaga.Kaga
+import com.waicool20.kaga.util.bind
 import javafx.beans.binding.Bindings
 import javafx.fxml.FXML
 import javafx.scene.control.CheckBox
-import javafx.scene.control.ComboBox
 import javafx.scene.layout.GridPane
 import javafx.util.StringConverter
+import org.controlsfx.control.CheckComboBox
 import tornadofx.*
 
 
 class ExpeditionsTabView {
     @FXML private lateinit var enableButton: CheckBox
-    @FXML private lateinit var fleet2ComboBox: ComboBox<String>
-    @FXML private lateinit var fleet3ComboBox: ComboBox<String>
-    @FXML private lateinit var fleet4ComboBox: ComboBox<String>
+    @FXML private lateinit var fleet2CheckComboBox: CheckComboBox<String>
+    @FXML private lateinit var fleet3CheckComboBox: CheckComboBox<String>
+    @FXML private lateinit var fleet4CheckComboBox: CheckComboBox<String>
 
     @FXML private lateinit var content: GridPane
 
-    @FXML fun initialize() {
+    private val specialExpediions = mapOf(
+            "9998" to "Pre-Boss Node Support",
+            "9999" to "Boss Node Support"
+    )
+
+    @FXML
+    fun initialize() {
         setValues()
         createBindings()
     }
 
     private fun setValues() {
-        val special = mapOf(
-                "" to "<Off-Duty>",
-                "9998" to "Pre-Boss Node Support",
-                "9999" to "Boss Node Support"
-        )
-        with(special.keys.toMutableList()) {
-            addAll(1, (1..41).map(Int::toString))
-            fleet2ComboBox.items.setAll(this)
-            fleet3ComboBox.items.setAll(this)
-            fleet4ComboBox.items.setAll(this)
+        (1..41).map(Int::toString).plus(specialExpediions.keys).also {
+            fleet2CheckComboBox.items.setAll(it)
+            fleet3CheckComboBox.items.setAll(it)
+            fleet4CheckComboBox.items.setAll(it)
         }
         val converter = object : StringConverter<String>() {
-            override fun toString(string: String?): String {
-                return special.getOrElse(string ?: "", { string ?: "" })
-            }
-
+            override fun toString(expNumber: String) = specialExpediions[expNumber] ?: expNumber
             override fun fromString(string: String?): String = ""
         }
-        fleet2ComboBox.converter = converter
-        fleet3ComboBox.converter = converter
-        fleet4ComboBox.converter = converter
-        with(Kaga.PROFILE.expeditions) {
-            fleet2ComboBox.value = fleet2
-            fleet3ComboBox.value = fleet3
-            fleet4ComboBox.value = fleet4
-        }
+        fleet2CheckComboBox.converter = converter
+        fleet3CheckComboBox.converter = converter
+        fleet4CheckComboBox.converter = converter
     }
 
     private fun createBindings() {
         with(Kaga.PROFILE.expeditions) {
             enableButton.bind(enabledProperty)
-            fleet2ComboBox.valueProperty().addListener { _, _, newVal -> if (newVal != null) fleet2 = newVal }
-            fleet3ComboBox.valueProperty().addListener { _, _, newVal -> if (newVal != null) fleet3 = newVal }
-            fleet4ComboBox.valueProperty().addListener { _, _, newVal -> if (newVal != null) fleet4 = newVal }
+            fleet2CheckComboBox.bind(fleet2Property)
+            fleet3CheckComboBox.bind(fleet3Property)
+            fleet4CheckComboBox.bind(fleet4Property)
         }
         content.disableProperty().bind(Bindings.not(enableButton.selectedProperty()))
     }

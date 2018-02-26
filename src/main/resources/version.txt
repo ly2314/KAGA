@@ -1,4 +1,4 @@
 {
-    "version": "v1.9.0",
-    "kcAutoCompatibility": "waicool20's fork"
+    "version": "v2.0.0-RC1",
+    "kcAutoCompatibility": "0.3.0"
 }

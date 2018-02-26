@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 
-class KancolleAuto {
+class KancolleAutoKai {
     private val template by lazy { Kaga::class.java.classLoader.getResourceAsStream("crashlog_template.md").bufferedReader().readText() }
     private val logger = LoggerFactory.getLogger(javaClass)
     private var kancolleAutoProcess: Process? = null
@@ -43,24 +43,22 @@ class KancolleAuto {
     var statsTracker = KancolleAutoStatsTracker()
 
     val version by lazy {
-        Files.readAllLines(Kaga.CONFIG.kancolleAutoRootDirPath.resolve("CHANGELOG.md")).first().let {
-            val date = "#{4} (\\d{4}-\\d{2}-\\d{2}).*?".toRegex().matchEntire(it)?.groupValues?.get(1) ?: "Unknown"
-            val release = ".*?(\\[.+?]).*?".toRegex().matchEntire(it)?.groupValues?.get(1) ?: ""
-            "$date $release"
+        Files.readAllLines(Kaga.CONFIG.kcaKaiRootDirPath.resolve("CHANGELOG.md")).first().let {
+            it.dropWhile { !it.isDigit() }
         }
     }
 
     fun startAndWait(saveConfig: Boolean = true) {
-        if (saveConfig) Kaga.PROFILE.save(Kaga.CONFIG.kancolleAutoRootDirPath.resolve("config.ini"))
+        if (saveConfig) Kaga.PROFILE.save()
         val args = listOf(
-                "java",
-                "-jar",
-                Kaga.CONFIG.sikulixJarPath.toString(),
-                "-r",
-                "${Kaga.CONFIG.kancolleAutoRootDirPath.resolve("kancolle_auto.sikuli")}"
+                "java", "-jar",
+                "${Kaga.CONFIG.sikulixJarPath}", "-r",
+                "${Kaga.CONFIG.kcaKaiRootDirPath.resolve("kcauto-kai.sikuli")}",
+                "--", "cfg", "${Kaga.PROFILE.path()}"
         )
         val lockPreventer = if (Kaga.CONFIG.preventLock) LockPreventer() else null
         statsTracker.startNewSession()
+        shouldStop = false
         KCAutoLoop@ while (true) {
             if (Kaga.CONFIG.clearConsoleOnStart) println("\u001b[2J\u001b[H") // Clear console
             logger.info("Starting new Kancolle Auto session (Version: $version)")
@@ -118,7 +116,7 @@ class KancolleAuto {
 
     private fun saveCrashLog() {
         val crashTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH.mm.ss"))
-        val logFile = Kaga.CONFIG.kancolleAutoRootDirPath.resolve("crashes/$crashTime.log")
+        val logFile = Kaga.CONFIG.kcaKaiRootDirPath.resolve("crashes/$crashTime.log")
         if (Files.notExists(logFile)) Files.createDirectories(logFile.parent)
         val log = template.replace("<DateTime>", crashTime)
                 .replace("<Version>", version)

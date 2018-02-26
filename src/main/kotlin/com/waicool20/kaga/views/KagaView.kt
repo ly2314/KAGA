@@ -24,20 +24,15 @@ import com.waicool20.kaga.Kaga
 import com.waicool20.kaga.config.KancolleAutoProfile
 import com.waicool20.kaga.util.AlertFactory
 import com.waicool20.kaga.util.setSideWithHorizontalText
-import com.waicool20.kaga.views.tabs.ExpeditionsTabView
-import com.waicool20.kaga.views.tabs.GeneralTabView
-import com.waicool20.kaga.views.tabs.PvpTabView
-import com.waicool20.kaga.views.tabs.SchedulingTabView
-import com.waicool20.kaga.views.tabs.misc.MiscTabView
+import com.waicool20.kaga.views.tabs.*
+import com.waicool20.kaga.views.tabs.LbasTabView
 import com.waicool20.kaga.views.tabs.quests.QuestsTabView
+import com.waicool20.kaga.views.tabs.shipswitcher.ShipSwitcherTabView
 import com.waicool20.kaga.views.tabs.sortie.SortieTabView
 import javafx.application.Platform
 import javafx.fxml.FXML
 import javafx.geometry.Side
-import javafx.scene.control.ComboBox
-import javafx.scene.control.Label
-import javafx.scene.control.SplitMenuButton
-import javafx.scene.control.TabPane
+import javafx.scene.control.*
 import javafx.scene.layout.HBox
 import javafx.stage.WindowEvent
 import org.slf4j.LoggerFactory
@@ -47,7 +42,6 @@ import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.concurrent.thread
-import kotlin.streams.asSequence
 import kotlin.streams.toList
 
 
@@ -66,14 +60,15 @@ class KagaView {
     @FXML private lateinit var expeditionsTabController: ExpeditionsTabView
     @FXML private lateinit var pvpTabController: PvpTabView
     @FXML private lateinit var sortieTabController: SortieTabView
-    @FXML private lateinit var miscTabController: MiscTabView
+    @FXML private lateinit var lbasTabController: LbasTabView
+    @FXML private lateinit var shipSwitcherTabController: ShipSwitcherTabView
     @FXML private lateinit var questsTabController: QuestsTabView
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @FXML
     fun initialize() {
-        Kaga.ROOT_STAGE.addEventHandler(WindowEvent.WINDOW_HIDDEN, { Kaga.KANCOLLE_AUTO.stop() })
+        Kaga.ROOT_STAGE.addEventHandler(WindowEvent.WINDOW_HIDDEN, { Kaga.KCAUTO_KAI.stop() })
         tabpane.setSideWithHorizontalText(Side.LEFT)
         createBindings()
         checkStartStopButton()
@@ -113,8 +108,9 @@ class KagaView {
                 expeditionsTabController.initialize()
                 pvpTabController.initialize()
                 sortieTabController.initialize()
-                miscTabController.initialize()
+                lbasTabController.initialize()
                 questsTabController.initialize()
+                shipSwitcherTabController.initialize()
                 AlertFactory.info(
                         content = "Profile ${profile.name} has been loaded!"
                 ).showAndWait()
@@ -158,19 +154,19 @@ class KagaView {
     }
 
     @FXML private fun onStartStopButton() {
-        if (!Kaga.KANCOLLE_AUTO.isRunning()) {
+        if (!Kaga.KCAUTO_KAI.isRunning()) {
             startKancolleAuto()
         } else {
-            Kaga.KANCOLLE_AUTO.stop()
+            Kaga.KCAUTO_KAI.stop()
         }
     }
 
     @FXML private fun startWithoutWritingConfig() {
-        if (!Kaga.KANCOLLE_AUTO.isRunning()) startKancolleAuto(false)
+        if (!Kaga.KCAUTO_KAI.isRunning()) startKancolleAuto(false)
     }
 
     @FXML private fun stopAtPort() {
-        if (Kaga.KANCOLLE_AUTO.isRunning()) Kaga.KANCOLLE_AUTO.stopAtPort()
+        if (Kaga.KCAUTO_KAI.isRunning()) Kaga.KCAUTO_KAI.stopAtPort()
     }
 
     private fun startKancolleAuto(saveConfig: Boolean = true) {
@@ -181,7 +177,7 @@ class KagaView {
                 checkStartStopButton()
                 profileSelectionHBox.isDisable = true
             }
-            Kaga.KANCOLLE_AUTO.startAndWait(saveConfig)
+            Kaga.KCAUTO_KAI.startAndWait(saveConfig)
             Platform.runLater {
                 kagaStatus.text = notRunningText
                 startStopButton.text = "Start"
@@ -207,7 +203,7 @@ class KagaView {
 
     @FXML private fun clearCrashLogs() {
         var count = 0
-        Files.walk(Kaga.CONFIG.kancolleAutoRootDirPath.resolve("crashes"))
+        Files.walk(Kaga.CONFIG.kcaKaiRootDirPath.resolve("crashes"))
                 .filter { Files.isRegularFile(it) }
                 .filter { it.toString().endsWith(".log") }
                 .peek { count++ }
@@ -219,7 +215,7 @@ class KagaView {
     }
 
     @FXML private fun openLatestCrashLog() {
-        val log = Files.walk(Kaga.CONFIG.kancolleAutoRootDirPath.resolve("crashes"), 1)
+        val log = Files.walk(Kaga.CONFIG.kcaKaiRootDirPath.resolve("crashes"), 1)
                 .filter { Files.isRegularFile(it) }
                 .filter { it.fileName.toString().endsWith(".log") }
                 .map(Path::toFile)
@@ -260,7 +256,7 @@ class KagaView {
                         Kancolle Auto GUI App by waicool20
 
                         Version: ${Kaga.VERSION_INFO.version}
-                        Kancolle-Auto Compatibility: ${Kaga.VERSION_INFO.kcAutoCompatibility}
+                        KCAuto Kai Compatibility: ${Kaga.VERSION_INFO.kcAutoCompatibility}
                         """.trimIndent()
         ).showAndWait()
     }

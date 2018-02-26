@@ -21,25 +21,65 @@
 package com.waicool20.kaga.views.tabs.sortie
 
 import com.waicool20.kaga.Kaga
-import com.waicool20.kaga.views.NodeChooserView
-import javafx.fxml.FXML
+import com.waicool20.kaga.config.KancolleAutoProfile
+import com.waicool20.kaga.util.IndexColumn
+import com.waicool20.kaga.util.disableHeaderMoving
+import com.waicool20.kaga.util.lockColumnWidths
+import com.waicool20.kaga.util.setWidthRatio
+import com.waicool20.kaga.views.SingleListView
+import javafx.beans.property.SimpleStringProperty
+import javafx.collections.FXCollections
+import javafx.scene.control.TableColumn
+import javafx.scene.control.cell.ComboBoxTableCell
 
-private val regexMap = mapOf("_node_E-(\\d)-(\\w)".toRegex() to "E(\\d): Node (\\w)".toRegex(),
-        "node_(\\d)-(\\d)-(\\w)".toRegex() to "(\\d)-(\\d): Node (\\w)".toRegex())
+data class NodeSelect(val source: SimpleStringProperty, val destination: SimpleStringProperty) {
+    fun isValid() = source.isNotNull.value && destination.isNotNull.value
+}
 
-class NodeSelectsChooserView : NodeChooserView("Selection", regexMap) {
-    @FXML override fun initialize() {
-        super.initialize()
-        nodeColumn?.filter = { _, string ->
-            !tableView.items.contains(string)
-        }
-        tableView.items.addAll(Kaga.PROFILE.sortie.nodeSelects.mapNotNull { converter?.toPrettyString(it) })
+class NodeSelectsChooserView : SingleListView<NodeSelect>(showControlButtons = true) {
+
+    private val VALID_NODES = KancolleAutoProfile.VALID_NODES.filterNot { it.matches("^\\d+".toRegex()) }.let {
+        FXCollections.observableList(it)
     }
 
-    override fun save(items: List<String>) {
-        Kaga.PROFILE.sortie.nodeSelects.setAll(tableView.items.mapNotNull { converter?.toImageName(it) }.dropLast(1))
+    init {
+        title = "KAGA - Node Selects Chooser"
+        val indexColumn = IndexColumn<NodeSelect>("#", 1).apply {
+            setWidthRatio(tableView(), 0.20)
+        }
+        val sourceNodeColumn = TableColumn<NodeSelect, String>("Source Node").apply {
+            cellFactory = ComboBoxTableCell.forTableColumn(VALID_NODES)
+            setCellValueFactory { it.value.source }
+            setWidthRatio(tableView(), 0.40)
+            isSortable = false
+        }
+
+        val destNodeColumn = TableColumn<NodeSelect, String>("Destination Node").apply {
+            cellFactory = ComboBoxTableCell.forTableColumn(VALID_NODES)
+            setCellValueFactory { it.value.destination }
+            setWidthRatio(tableView(), 0.40)
+            isSortable = false
+        }
+
+        tableView().lockColumnWidths()
+        tableView().disableHeaderMoving()
+        tableView().columns.addAll(indexColumn, sourceNodeColumn, destNodeColumn)
+        val items = Kaga.PROFILE.sortie.nodeSelects.map {
+            NodeSelect(SimpleStringProperty("${it.first()}"), SimpleStringProperty("${it.last()}"))
+        }
+        tableView().items.addAll(items)
+    }
+
+    override fun onAddButton() {
+        if (tableView().items.let { it.isEmpty() || it.last().isValid() }) {
+            tableView().items.add(NodeSelect(SimpleStringProperty(), SimpleStringProperty()))
+        }
+    }
+
+    override fun onSaveButton() {
+        tableView().items.filter { it.isValid() }
+                .map { "${it.source.value}>${it.destination.value}" }
+                .let { Kaga.PROFILE.sortie.nodeSelectsProperty.setAll(it) }
         closeWindow()
     }
 }
-
-

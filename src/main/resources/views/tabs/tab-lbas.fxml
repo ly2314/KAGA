@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+<?import org.controlsfx.control.PrefixSelectionComboBox?>
+
+<!--
+  ~ GPLv3 License
+  ~
+  ~  Copyright (c) KAGA by waicool20
+  ~
+  ~ This program is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  ~
+  -->
+
+<AnchorPane minHeight="0.0" minWidth="0.0" xmlns="http://javafx.com/javafx/8.0.162-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.waicool20.kaga.views.tabs.LbasTabView">
+    <children>
+          <GridPane fx:id="lbasContent">
+              <columnConstraints>
+                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="-Infinity" minWidth="-Infinity" prefWidth="125.0" />
+                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="-Infinity" minWidth="-Infinity" />
+            <ColumnConstraints hgrow="SOMETIMES" maxWidth="-Infinity" minWidth="-Infinity" />
+              </columnConstraints>
+              <rowConstraints>
+                  <RowConstraints maxHeight="1.7976931348623157E308" minHeight="45.0" vgrow="SOMETIMES" />
+                  <RowConstraints maxHeight="1.7976931348623157E308" minHeight="45.0" vgrow="SOMETIMES" />
+                  <RowConstraints maxHeight="1.7976931348623157E308" minHeight="45.0" vgrow="SOMETIMES" />
+              </rowConstraints>
+              <children>
+                  <HBox alignment="CENTER">
+                      <children>
+                          <Label fx:id="lbasGroup1Label" text="LBAS Group 1:" />
+                      </children>
+                  </HBox>
+                  <HBox alignment="CENTER" GridPane.rowIndex="1">
+                      <children>
+                          <Label fx:id="lbasGroup2Label" text="LBAS Group 2:" />
+                      </children>
+                  </HBox>
+                  <HBox alignment="CENTER" GridPane.rowIndex="2">
+                      <children>
+                          <Label fx:id="lbasGroup3Label" text="LBAS Group 3:" />
+                      </children>
+                  </HBox>
+            <VBox spacing="10.0" GridPane.columnIndex="1">
+               <children>
+                  <PrefixSelectionComboBox fx:id="grp1choice1ComboBox" backSpaceAllowed="true" prefWidth="100.0" />
+                  <PrefixSelectionComboBox fx:id="grp1choice2ComboBox" backSpaceAllowed="true" prefWidth="100.0" />
+               </children>
+               <padding>
+                  <Insets bottom="10.0" top="10.0" />
+               </padding>
+            </VBox>
+            <HBox alignment="CENTER" GridPane.columnIndex="2">
+               <children>
+                  <Label fx:id="grp1NodesWarnLabel" text="2 nodes required!&#10;LBAS Group 1 disabled." textAlignment="CENTER" textFill="RED" HBox.hgrow="ALWAYS">
+                     <font>
+                        <Font size="10.0" />
+                     </font>
+                  </Label>
+               </children>
+               <padding>
+                  <Insets left="10.0" />
+               </padding>
+            </HBox>
+            <HBox alignment="CENTER" GridPane.columnIndex="2" GridPane.rowIndex="1">
+               <children>
+                  <Label fx:id="grp2NodesWarnLabel" text="2 nodes required!&#10;LBAS Group 2 disabled." textAlignment="CENTER" textFill="RED" HBox.hgrow="ALWAYS">
+                     <font>
+                        <Font size="10.0" />
+                     </font>
+                  </Label>
+               </children>
+               <padding>
+                  <Insets left="10.0" />
+               </padding>
+            </HBox>
+            <HBox alignment="CENTER" GridPane.columnIndex="2" GridPane.rowIndex="2">
+               <children>
+                  <Label fx:id="grp3NodesWarnLabel" text="2 nodes required!&#10;LBAS Group 3 disabled." textAlignment="CENTER" textFill="RED" HBox.hgrow="ALWAYS">
+                     <font>
+                        <Font size="10.0" />
+                     </font>
+                  </Label>
+               </children>
+               <padding>
+                  <Insets left="10.0" />
+               </padding>
+            </HBox>
+            <VBox spacing="10.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+               <children>
+                  <PrefixSelectionComboBox fx:id="grp2choice1ComboBox" backSpaceAllowed="true" prefWidth="100.0" />
+                  <PrefixSelectionComboBox fx:id="grp2choice2ComboBox" backSpaceAllowed="true" prefWidth="100.0" />
+               </children>
+               <padding>
+                  <Insets bottom="10.0" top="10.0" />
+               </padding>
+            </VBox>
+            <VBox spacing="10.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
+               <children>
+                  <PrefixSelectionComboBox fx:id="grp3choice1ComboBox" backSpaceAllowed="true" prefWidth="100.0" />
+                  <PrefixSelectionComboBox fx:id="grp3choice2ComboBox" backSpaceAllowed="true" prefWidth="100.0" />
+               </children>
+               <padding>
+                  <Insets bottom="10.0" top="10.0" />
+               </padding>
+            </VBox>
+              </children>
+          </GridPane>
+    </children>
+</AnchorPane>

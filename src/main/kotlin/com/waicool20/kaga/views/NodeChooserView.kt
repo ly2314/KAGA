@@ -62,6 +62,7 @@ class NodeImgStringConverter(val regexMap: Map<Regex, Regex>) {
             regexMap.keys.map { string.matches(it) }.contains(true)
 }
 
+/* TODO Disabled temporarily till kcauto-kai is finalized
 abstract class NodeChooserView(private val nodeColumnTitle: String, regexMap: Map<Regex, Regex>) : SingleListView<String>() {
     @FXML protected lateinit var tableView: TableView<String>
     protected val converter: NodeImgStringConverter? = NodeImgStringConverter(regexMap)
@@ -71,7 +72,7 @@ abstract class NodeChooserView(private val nodeColumnTitle: String, regexMap: Ma
         if (converter == null) return
         val nodeNumColumn = IndexColumn<String>("Node", 1)
         nodeNumColumn.setWidthRatio(tableView, 0.25)
-        val selections = Files.walk(Kaga.CONFIG.kancolleAutoRootDirPath.resolve("kancolle_auto.sikuli/combat.sikuli"), 1)
+        val selections = Files.walk(Kaga.CONFIG.kcaKaiRootDirPath.resolve("kancolle_auto.sikuli/combat.sikuli"), 1)
                 .map { it.fileName.toString().replace(".png", "", true) }
                 .sorted()
                 .filter { converter.matches(it) }
@@ -94,4 +95,4 @@ abstract class NodeChooserView(private val nodeColumnTitle: String, regexMap: Ma
     override fun tableView() = tableView
 
     abstract fun save(items: List<String>)
-}
+}*/
