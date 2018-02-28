@@ -21,36 +21,27 @@
 package com.waicool20.kaga.views.tabs.sortie
 
 import com.waicool20.kaga.Kaga
-import com.waicool20.kaga.config.KancolleAutoProfile
-import com.waicool20.kaga.util.*
+import com.waicool20.kaga.config.KancolleAutoProfile.*
+import com.waicool20.kaga.util.NoneSelectableCellFactory
+import com.waicool20.kaga.util.asTimeSpinner
+import com.waicool20.kaga.util.bind
 import javafx.beans.binding.Bindings
-import javafx.beans.value.ChangeListener
 import javafx.fxml.FXML
-import javafx.fxml.FXMLLoader
-import javafx.scene.Scene
-import javafx.scene.control.CheckBox
-import javafx.scene.control.ComboBox
-import javafx.scene.control.Spinner
-import javafx.scene.control.SpinnerValueFactory
+import javafx.scene.control.*
 import javafx.scene.layout.GridPane
-import javafx.stage.Modality
-import javafx.stage.Stage
 import javafx.util.StringConverter
-import org.slf4j.LoggerFactory
 import tornadofx.*
-import java.nio.file.Files
 import java.util.concurrent.TimeUnit
-import kotlin.streams.toList
 
 
 class SortieTabView {
     @FXML private lateinit var enableButton: CheckBox
-    @FXML private lateinit var engineComboBox: ComboBox<KancolleAutoProfile.Engine>
+    @FXML private lateinit var engineComboBox: ComboBox<Engine>
     @FXML private lateinit var mapComboBox: ComboBox<String>
     @FXML private lateinit var nodesSpinner: Spinner<Int>
-    @FXML private lateinit var fleetModeComboBox: ComboBox<KancolleAutoProfile.FleetMode>
-    @FXML private lateinit var retreatLimitComboBox: ComboBox<KancolleAutoProfile.DamageLevel>
-    @FXML private lateinit var repairLimitComboBox: ComboBox<KancolleAutoProfile.DamageLevel>
+    @FXML private lateinit var fleetModeComboBox: ComboBox<FleetMode>
+    @FXML private lateinit var retreatLimitComboBox: ComboBox<DamageLevel>
+    @FXML private lateinit var repairLimitComboBox: ComboBox<DamageLevel>
     @FXML private lateinit var repairTimeHourSpinner: Spinner<Int>
     @FXML private lateinit var repairTimeMinSpinner: Spinner<Int>
     @FXML private lateinit var reserveDocksCheckBox: CheckBox
@@ -58,9 +49,11 @@ class SortieTabView {
     @FXML private lateinit var checkPortCheckBox: CheckBox
     @FXML private lateinit var medalStopCheckBox: CheckBox
 
-    @FXML private lateinit var content: GridPane
+    @FXML private lateinit var nodeSelectsButton: Button
+    @FXML private lateinit var formationsButton: Button
+    @FXML private lateinit var nightBattlesButton: Button
 
-    private val logger = LoggerFactory.getLogger(javaClass)
+    @FXML private lateinit var content: GridPane
 
     private val maps = setOf(
             "-- World 1 --",
@@ -80,37 +73,39 @@ class SortieTabView {
             "E-5", "E-6", "E-7", "E-8"
     )
 
-    @FXML fun initialize() {
+    @FXML
+    fun initialize() {
         setValues()
         createBindings()
+        setupButtons()
     }
 
     private fun setValues() {
-        val engineConverter = object: StringConverter<KancolleAutoProfile.Engine>() {
-            override fun toString(engine: KancolleAutoProfile.Engine?) = engine?.prettyString ?: ""
-            override fun fromString(string: String?) = KancolleAutoProfile.Engine.fromPrettyString(string ?: "")
+        val engineConverter = object : StringConverter<Engine>() {
+            override fun toString(engine: Engine) = engine.prettyString
+            override fun fromString(string: String) = Engine.fromPrettyString(string)
         }
         engineComboBox.converter = engineConverter
-        engineComboBox.items.setAll(KancolleAutoProfile.Engine.values().toList())
+        engineComboBox.items.setAll(Engine.values().toList())
 
-        mapComboBox.cellFactory = NoneSelectableCellFactory("--.+?--".toRegex())
+        mapComboBox.cellFactory = NoneSelectableCellFactory(Regex("--.+?--"))
         mapComboBox.items.setAll(maps)
 
         nodesSpinner.valueFactory = SpinnerValueFactory.IntegerSpinnerValueFactory(1, 12)
 
-        val fleetModeConverter = object: StringConverter<KancolleAutoProfile.FleetMode>() {
-            override fun toString(fleetMode: KancolleAutoProfile.FleetMode?) = fleetMode?.prettyString ?: ""
-            override fun fromString(string: String?) = KancolleAutoProfile.FleetMode.fromPrettyString(string ?: "")
+        val fleetModeConverter = object : StringConverter<FleetMode>() {
+            override fun toString(fleetMode: FleetMode) = fleetMode.prettyString
+            override fun fromString(string: String) = FleetMode.fromPrettyString(string)
         }
         fleetModeComboBox.converter = fleetModeConverter
-        fleetModeComboBox.items.setAll(KancolleAutoProfile.FleetMode.values().toList())
+        fleetModeComboBox.items.setAll(FleetMode.values().toList())
 
-        val damageConverter = object : StringConverter<KancolleAutoProfile.DamageLevel>() {
-            override fun toString(level: KancolleAutoProfile.DamageLevel?) = level?.prettyString ?: ""
-            override fun fromString(string: String?)= KancolleAutoProfile.DamageLevel.fromPrettyString(string ?: "")
+        val damageConverter = object : StringConverter<DamageLevel>() {
+            override fun toString(level: DamageLevel) = level.prettyString
+            override fun fromString(string: String) = DamageLevel.fromPrettyString(string)
         }
-        retreatLimitComboBox.items.setAll(KancolleAutoProfile.DamageLevel.values().toList())
-        repairLimitComboBox.items.setAll(KancolleAutoProfile.DamageLevel.values().toList())
+        retreatLimitComboBox.items.setAll(DamageLevel.values().toList())
+        repairLimitComboBox.items.setAll(DamageLevel.values().toList())
         retreatLimitComboBox.converter = damageConverter
         repairLimitComboBox.converter = damageConverter
 
@@ -122,10 +117,10 @@ class SortieTabView {
         }
 
         with(Kaga.PROFILE.sortie.miscOptions) {
-            reserveDocksCheckBox.isSelected = contains(KancolleAutoProfile.SortieOptions.RESERVE_DOCKS)
-            checkFatigueCheckBox.isSelected = contains(KancolleAutoProfile.SortieOptions.CHECK_FATIGUE)
-            checkPortCheckBox.isSelected = contains(KancolleAutoProfile.SortieOptions.PORT_CHECK)
-            medalStopCheckBox.isSelected = contains(KancolleAutoProfile.SortieOptions.MEDAL_STOP)
+            reserveDocksCheckBox.isSelected = contains(SortieOptions.RESERVE_DOCKS)
+            checkFatigueCheckBox.isSelected = contains(SortieOptions.CHECK_FATIGUE)
+            checkPortCheckBox.isSelected = contains(SortieOptions.PORT_CHECK)
+            medalStopCheckBox.isSelected = contains(SortieOptions.MEDAL_STOP)
         }
     }
 
@@ -146,28 +141,42 @@ class SortieTabView {
 
         with(Kaga.PROFILE.sortie.miscOptions) {
             reserveDocksCheckBox.selectedProperty().addListener { _, _, newVal ->
-                if (newVal) add(KancolleAutoProfile.SortieOptions.RESERVE_DOCKS) else remove(KancolleAutoProfile.SortieOptions.RESERVE_DOCKS)
+                if (newVal) add(SortieOptions.RESERVE_DOCKS) else remove(SortieOptions.RESERVE_DOCKS)
             }
             checkFatigueCheckBox.selectedProperty().addListener { _, _, newVal ->
-                if (newVal) add(KancolleAutoProfile.SortieOptions.CHECK_FATIGUE) else remove(KancolleAutoProfile.SortieOptions.CHECK_FATIGUE)
+                if (newVal) add(SortieOptions.CHECK_FATIGUE) else remove(SortieOptions.CHECK_FATIGUE)
             }
             checkPortCheckBox.selectedProperty().addListener { _, _, newVal ->
-                if (newVal) add(KancolleAutoProfile.SortieOptions.PORT_CHECK) else remove(KancolleAutoProfile.SortieOptions.PORT_CHECK)
+                if (newVal) add(SortieOptions.PORT_CHECK) else remove(SortieOptions.PORT_CHECK)
             }
             medalStopCheckBox.selectedProperty().addListener { _, _, newVal ->
-                if (newVal) add(KancolleAutoProfile.SortieOptions.MEDAL_STOP) else remove(KancolleAutoProfile.SortieOptions.MEDAL_STOP)
+                if (newVal) add(SortieOptions.MEDAL_STOP) else remove(SortieOptions.MEDAL_STOP)
             }
         }
 
         content.disableProperty().bind(Bindings.not(enableButton.selectedProperty()))
     }
 
-    @FXML private fun onConfigureNodeSelectsButton() =
-            find(NodeSelectsChooserView::class).openModal(owner = Kaga.ROOT_STAGE.owner)
-
-    @FXML private fun onConfigureFormationsButton() =
-            find(FormationChooserView::class).openModal(owner = Kaga.ROOT_STAGE.owner)
-
-    @FXML private fun onConfigureNightBattlesButton() =
-            find(NightBattlesChooserView::class).openModal(owner = Kaga.ROOT_STAGE.owner)
+    private fun setupButtons() {
+        nodeSelectsButton.setOnAction { find<NodeSelectsChooserView>().openModal() }
+        formationsButton.setOnAction { find<FormationChooserView>().openModal() }
+        nightBattlesButton.setOnAction { find<NightBattlesChooserView>().openModal() }
+        with(Kaga.PROFILE.sortie) {
+            nodeSelectsButton.tooltip {
+                textProperty().bind(nodeSelectsProperty.stringBinding {
+                    it?.joinToString("\n")
+                })
+            }
+            formationsButton.tooltip {
+                textProperty().bind(formationsProperty.stringBinding {
+                    it?.joinToString("\n")
+                })
+            }
+            nightBattlesButton.tooltip {
+                textProperty().bind(nightBattlesProperty.stringBinding {
+                    it?.joinToString("\n")
+                })
+            }
+        }
+    }
 }
