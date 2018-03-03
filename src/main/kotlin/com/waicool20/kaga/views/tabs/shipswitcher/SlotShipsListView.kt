@@ -22,10 +22,10 @@ package com.waicool20.kaga.views.tabs.shipswitcher
 
 import com.waicool20.kaga.config.Kanmusu
 import com.waicool20.kaga.config.ShipSpecification
+import com.waicool20.kaga.config.ShipSpecification.Companion.parse
 import com.waicool20.kaga.config.ShipSpecificationByPosition
 import com.waicool20.kaga.util.AlertFactory
 import javafx.beans.property.SimpleListProperty
-import javafx.collections.FXCollections
 import javafx.scene.control.ListView
 import javafx.scene.control.SelectionMode
 import javafx.scene.control.cell.TextFieldListCell
@@ -37,7 +37,7 @@ import org.controlsfx.glyphfont.Glyph
 import tornadofx.*
 
 class SlotShipsListView : Fragment() {
-    override val root: HBox by fxml("/views/slotships/list.fxml")
+    override val root: HBox by fxml("/views/tabs/slotships/list.fxml")
     override val scope = super.scope as ShipSwitcherTabView.SlotShipsEditScope
 
     private val slotShipsListView: ListView<ShipSpecification> by fxid()
@@ -100,24 +100,20 @@ class SlotShipsListView : Fragment() {
     }
 
     override fun onCreate() {
-        super.onCreate()
         scope.set(SlotShipEditModel(slotShipsListView))
         workspace.dock<SlotShipsEditorView>()
     }
 
     override fun onRefresh() {
-        super.onRefresh()
-        slotShipsListView.items = SimpleListProperty(FXCollections.observableList(scope.slot.get().map { ShipSpecification.parse(it) }))
+        slotShipsListView.items = SimpleListProperty(scope.slot.map(::parse).observable())
     }
 
     override fun onDelete() {
-        super.onDelete()
         slotShipsListView.items.removeAll(slotShipsListView.selectionModel.selectedItems)
     }
 
     override fun onSave() {
-        super.onSave()
-        scope.slot.get().setAll(slotShipsListView.items.map { it.asConfigString() })
+        scope.slot.setAll(slotShipsListView.items.map { it.asConfigString() })
         close()
     }
 }

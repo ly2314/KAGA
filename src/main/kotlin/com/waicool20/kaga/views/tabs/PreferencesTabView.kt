@@ -22,14 +22,15 @@ package com.waicool20.kaga.views.tabs
 
 import com.waicool20.kaga.Kaga
 import com.waicool20.kaga.config.KagaConfig
+import com.waicool20.kaga.kcauto.YuuBot
 import com.waicool20.kaga.util.AlertFactory
 import com.waicool20.kaga.util.bind
+import javafx.animation.PauseTransition
 import javafx.fxml.FXML
-import javafx.scene.control.CheckBox
-import javafx.scene.control.Hyperlink
-import javafx.scene.control.Spinner
-import javafx.scene.control.SpinnerValueFactory
+import javafx.scene.control.*
+import javafx.util.Duration
 import java.awt.Desktop
+import java.net.URI
 import java.nio.file.Path
 import kotlin.concurrent.thread
 
@@ -44,8 +45,13 @@ class PreferencesTabView {
     @FXML private lateinit var checkForUpdatesCheckBox: CheckBox
     @FXML private lateinit var sikulixJarPathLink: Hyperlink
     @FXML private lateinit var kcaKaiRootPathLink: Hyperlink
+    @FXML private lateinit var apiKeyTextField: TextField
+    @FXML private lateinit var reportStatusLink: Hyperlink
 
-    @FXML fun initialize() {
+    private val borderStyle = "-fx-border-width: 2px"
+
+    @FXML
+    fun initialize() {
         setValues()
         createBindings()
     }
@@ -57,6 +63,7 @@ class PreferencesTabView {
             sikulixJarPathLink.text = sikulixJarPath.toString()
             kcaKaiRootPathLink.text = kcaKaiRootDirPath.toString()
             maxRetriesSpinner.valueFactory = SpinnerValueFactory.IntegerSpinnerValueFactory(0, Int.MAX_VALUE)
+            apiKeyTextField.text = apiKey
         }
     }
 
@@ -77,17 +84,51 @@ class PreferencesTabView {
             showDebugCheckBox.selectedProperty().bindBidirectional(showDebugOnStartProperty)
             showStatsCheckBox.selectedProperty().bindBidirectional(showStatsOnStartProperty)
             checkForUpdatesCheckBox.selectedProperty().bindBidirectional(checkForUpdatesProperty)
+            val pause = PauseTransition(Duration.seconds(1.0))
+
+            apiKeyTextField.textProperty().addListener { _, _, newVal ->
+                apiKeyTextField.style = "-fx-border-color: yellow;$borderStyle"
+                pause.setOnFinished { testApiKey(newVal) }
+                pause.playFromStart()
+            }
         }
     }
 
-    @FXML private fun onSaveButton() {
+    fun testApiKey(apiKey: String = Kaga.CONFIG.apiKey) {
+        apiKeyTextField.style = "-fx-border-color: yellow;$borderStyle"
+        YuuBot.testApiKey(apiKey) { status ->
+            Kaga.CONFIG.apiKey = when(status) {
+                YuuBot.ApiKeyStatus.VALID -> {
+                    apiKeyTextField.style = "-fx-border-color: lightgreen;$borderStyle"
+                    apiKey
+                }
+                YuuBot.ApiKeyStatus.INVALID ->{
+                    apiKeyTextField.style = "-fx-border-color: red;$borderStyle"
+                    ""
+                }
+                YuuBot.ApiKeyStatus.UNKNOWN -> apiKey
+            }
+        }
+    }
+
+    @FXML
+    private fun onSaveButton() {
         Kaga.CONFIG.save()
         AlertFactory.info(content = "Preferences were saved!").showAndWait()
     }
 
-    @FXML private fun onResetButton() {
+    @FXML
+    private fun onResetButton() {
         Kaga.CONFIG = KagaConfig.load()
         initialize()
         AlertFactory.info(content = "Preferences were reset!").showAndWait()
+    }
+
+    @FXML
+    private fun openDiscordLink() {
+        if (Desktop.isDesktopSupported()) {
+            thread { Desktop.getDesktop().browse(URI("https://discord.gg/2tt5Der")) }
+            Kaga.ROOT_STAGE.toBack()
+        }
     }
 }

@@ -24,11 +24,11 @@ import com.waicool20.kaga.util.LoggingEventBus
 import java.time.LocalDateTime
 import kotlin.reflect.KMutableProperty1
 
-class KancolleAutoStatsTracker {
+object KancolleAutoKaiStatsTracker {
     var startingTime: LocalDateTime? = null
     var crashes = 0
     var atPort = true
-    val history = mutableListOf<KancolleAutoStats>()
+    val history = mutableListOf<KancolleAutoKaiStats>()
 
     init {
         with(LoggingEventBus) {
@@ -47,7 +47,11 @@ class KancolleAutoStatsTracker {
                     expeditionsReceived = it.groupValues[2].toInt()
                 }
             }
-            
+
+            subscribe(Regex(".*Expeditions received: (\\d+).*")) {
+                currentStats().expeditionsReceived = it.groupValues[1].toInt()
+            }
+
             // Track quests conducted
             subscribe(Regex(".*Quests started: (\\d+) / finished: (\\d+).*")) {
                 currentStats().apply {
@@ -102,14 +106,14 @@ class KancolleAutoStatsTracker {
         trackNewChild()
     }
 
-    fun trackNewChild() = history.add(KancolleAutoStats())
+    fun trackNewChild() = history.add(KancolleAutoKaiStats())
 
-    operator fun get(stat: KMutableProperty1<KancolleAutoStats, Int>) = history.sumBy { stat.get(it) }
+    operator fun get(stat: KMutableProperty1<KancolleAutoKaiStats, Int>) = history.sumBy { stat.get(it) }
 
     private fun currentStats() = history.last()
 }
 
-data class KancolleAutoStats(
+data class KancolleAutoKaiStats(
         var sortiesDone: Int = 0,
         var sortiesAttempted: Int = 0,
         var expeditionsSent: Int = 0,

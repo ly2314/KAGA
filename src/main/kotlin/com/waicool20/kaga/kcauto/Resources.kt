@@ -18,19 +18,13 @@
  *
  */
 
-package com.waicool20.kaga.views.tabs.shipswitcher
+package com.waicool20.kaga.kcauto
 
-import tornadofx.*
-
-
-class SlotShipsEditorWorkspace : Workspace() {
-    init {
-        scope.workspace(this)
-        dock<SlotShipsListView>()
-    }
-
-    override fun onUndock() {
-        super.onDock()
-        scope.deregister()
-    }
-}
+data class Resources(
+        var fuel: Int = 0,
+        var ammo: Int = 0,
+        var steel: Int = 0,
+        var bauxite: Int = 0,
+        var buckets: Int = 0,
+        var devmats: Int = 0
+)

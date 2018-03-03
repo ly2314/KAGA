@@ -40,7 +40,7 @@ class KancolleAutoKai {
     private var streamGobbler: StreamGobbler? = null
     private var shouldStop = false
 
-    var statsTracker = KancolleAutoStatsTracker()
+    val statsTracker = KancolleAutoKaiStatsTracker
 
     val version by lazy {
         Files.readAllLines(Kaga.CONFIG.kcaKaiRootDirPath.resolve("CHANGELOG.md")).first().let {
@@ -65,13 +65,14 @@ class KancolleAutoKai {
             logger.debug("Launching with command: ${args.joinToString(" ")}")
             logger.debug("Session profile: ${jacksonObjectMapper().writeValueAsString(Kaga.PROFILE)}")
             kancolleAutoProcess = ProcessBuilder(args).start()
-            streamGobbler = StreamGobbler(kancolleAutoProcess)
-            streamGobbler?.run()
+            YuuBot.reportStats()
+            streamGobbler = StreamGobbler(kancolleAutoProcess).apply { run() }
             lockPreventer?.start()
             val exitVal = kancolleAutoProcess?.waitFor()
             logger.info("KCAuto-Kai session has terminated!")
             logger.debug("Exit Value was $exitVal")
             lockPreventer?.stop()
+            YuuBot.reportStats()
             when (exitVal) {
                 0, 143 -> break@KCAutoLoop
                 else -> {
@@ -81,6 +82,7 @@ class KancolleAutoKai {
                         break@KCAutoLoop
                     }
                     logger.info("KCAuto-Kai didn't terminate gracefully")
+                    YuuBot.reportStats()
                     saveCrashLog()
                     if (Kaga.CONFIG.autoRestartOnKCAutoCrash) {
                         if (statsTracker.crashes < Kaga.CONFIG.autoRestartMaxRetries) {
@@ -125,5 +127,6 @@ class KancolleAutoKai {
                 .replace("<Config>", Kaga.PROFILE.asIniString())
                 .replace("<Log>", Kaga.LOG)
         Files.write(logFile, log.toByteArray(), StandardOpenOption.CREATE)
+        YuuBot.reportCrash(CrashInfoDto(Kaga.LOG))
     }
 }
