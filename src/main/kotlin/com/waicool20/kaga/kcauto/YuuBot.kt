@@ -28,15 +28,22 @@ import org.apache.http.client.methods.HttpGet
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.ContentType
 import org.apache.http.entity.StringEntity
+import org.apache.http.impl.client.CloseableHttpClient
 import org.apache.http.impl.client.HttpClients
 import org.slf4j.LoggerFactory
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import kotlin.concurrent.thread
 
 object YuuBot {
-    private val API_URL = "https://yuu.waicool20.com/api/user/"
+    private val endpoint
+        get() = if (useLocalServer) {
+            "http://localhost:8080/api/user/"
+        } else {
+            "https://yuu.waicool20.com/api/user/"
+        }
     private val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
     private val logger = LoggerFactory.getLogger(javaClass)
+    var useLocalServer = false
 
     enum class ApiKeyStatus {
         VALID, INVALID, UNKNOWN
@@ -52,14 +59,12 @@ object YuuBot {
     fun reportStats() {
         if (Kaga.CONFIG.apiKey.isEmpty()) return
         logger.info("Reporting stats to YuuBot!")
-        thread {
+        httpClient { client ->
             try {
-                val response = HttpClients.createDefault().use { client ->
-                    val stats = KCAutoKaiStatsDto(KancolleAutoKaiStatsTracker, Resources())
-                    HttpPost(API_URL + Kaga.CONFIG.apiKey + "/stats").apply {
-                        entity = StringEntity(mapper.writeValueAsString(stats), ContentType.APPLICATION_JSON)
-                    }.let { client.execute(it) }.statusLine.statusCode
-                }
+                val stats = KCAutoKaiStatsDto(KancolleAutoKaiStatsTracker, Resources())
+                val response = HttpPost(endpoint + Kaga.CONFIG.apiKey + "/stats").apply {
+                    entity = StringEntity(mapper.writeValueAsString(stats), ContentType.APPLICATION_JSON)
+                }.let { client.execute(it) }.statusLine.statusCode
                 when (response) {
                     200 -> logger.debug("Stats reported to YuuBot! Response was: $response")
                     else -> logger.warn("Failed to report stats to YuuBot, response was: $response")
@@ -73,13 +78,11 @@ object YuuBot {
     fun reportCrash(dto: CrashInfoDto) {
         if (Kaga.CONFIG.apiKey.isEmpty()) return
         logger.info("Reporting crash to YuuBot")
-        thread {
+        httpClient { client ->
             try {
-                val response = HttpClients.createDefault().use { client ->
-                    HttpPost(API_URL + Kaga.CONFIG.apiKey + "/crashed").apply {
-                        entity = StringEntity(mapper.writeValueAsString(dto), ContentType.APPLICATION_JSON)
-                    }.let { client.execute(it) }.statusLine.statusCode
-                }
+                val response = HttpPost(endpoint + Kaga.CONFIG.apiKey + "/crashed").apply {
+                    entity = StringEntity(mapper.writeValueAsString(dto), ContentType.APPLICATION_JSON)
+                }.let { client.execute(it) }.statusLine.statusCode
                 when (response) {
                     200 -> logger.debug("Crash reported to YuuBot! Response was: $response")
                     else -> logger.warn("Failed to report crash to YuuBot, response was: $response")
@@ -97,34 +100,36 @@ object YuuBot {
             return
         }
         logger.info("Testing API key: $apiKey")
-        thread {
-            HttpClients.createDefault().use { client ->
-                try {
-                    val response = client.execute(HttpGet(API_URL + apiKey)).statusLine.statusCode
-                    when (response) {
-                        200 -> {
-                            onComplete(ApiKeyStatus.VALID)
-                            logger.info("API key was found valid, response was: $response")
-                        }
-                        else -> {
-                            onComplete(ApiKeyStatus.INVALID)
-                            logger.warn("API key was found invalid, response was: $response")
-                        }
+        httpClient { client ->
+            try {
+                val response = client.execute(HttpGet(endpoint + apiKey)).statusLine.statusCode
+                when (response) {
+                    200 -> {
+                        onComplete(ApiKeyStatus.VALID)
+                        logger.info("API key was found valid, response was: $response")
                     }
-                } catch (e: Exception) {
-                    logger.warn("Could not check if API key is valid, maybe your internet is down?")
-                    onComplete(ApiKeyStatus.UNKNOWN)
+                    else -> {
+                        onComplete(ApiKeyStatus.INVALID)
+                        logger.warn("API key was found invalid, response was: $response")
+                    }
                 }
+            } catch (e: Exception) {
+                logger.warn("Could not check if API key is valid, maybe your internet is down?")
+                onComplete(ApiKeyStatus.UNKNOWN)
             }
+
         }
     }
+
+    private fun httpClient(action: (CloseableHttpClient) -> Unit) = thread { HttpClients.createDefault().use(action) }
 }
 
 data class CrashInfoDto(val log: String)
 
 data class KCAutoKaiStatsDto(
+        val profileName: String,
         val isRunning: Boolean,
-        val startingTime: LocalDateTime,
+        val startingTime: ZonedDateTime,
         val crashes: Int,
         val sortiesDone: Int,
         val sortiesAttempted: Int,
@@ -141,8 +146,9 @@ data class KCAutoKaiStatsDto(
         val resources: Resources
 ) {
     constructor(tracker: KancolleAutoKaiStatsTracker, resources: Resources) : this(
+            profileName = Kaga.PROFILE.name,
             isRunning = Kaga.KCAUTO_KAI.isRunning(),
-            startingTime = tracker.startingTime ?: LocalDateTime.now(),
+            startingTime = tracker.startingTime ?: ZonedDateTime.now(),
             crashes = tracker.crashes,
             sortiesDone = tracker[KancolleAutoKaiStats::sortiesDone],
             sortiesAttempted = tracker[KancolleAutoKaiStats::sortiesAttempted],

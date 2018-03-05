@@ -41,7 +41,7 @@ apply plugin: 'java'
 apply plugin: 'kotlin'
 
 group 'com.waicool20'
-version 'v2.0.0-RC3'
+version 'v2.0.0-RC4'
 def kcAutoCompatibility = '0.3.0'
 
 sourceCompatibility = 1.8
@@ -81,6 +81,7 @@ dependencies {
     compile group: 'org.controlsfx', name: 'controlsfx', version: '8.40.14'
     compile group: 'org.jsoup', name: 'jsoup', version: '1.11.2'
     compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.5'
+    compile 'com.1stleg:jnativehook:2.0.2' // 2.1.0 breaks FileChoosers
 }
 
 shadowJar {

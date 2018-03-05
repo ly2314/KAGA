@@ -22,13 +22,14 @@ package com.waicool20.kaga.views
 
 import com.waicool20.kaga.Kaga
 import com.waicool20.kaga.config.KancolleAutoProfile
+import com.waicool20.kaga.handlers.GlobalShortcutHandler
 import com.waicool20.kaga.util.AlertFactory
 import com.waicool20.kaga.util.setSideWithHorizontalText
 import com.waicool20.kaga.views.tabs.*
 import com.waicool20.kaga.views.tabs.quests.QuestsTabView
 import com.waicool20.kaga.views.tabs.shipswitcher.ShipSwitcherTabView
 import com.waicool20.kaga.views.tabs.sortie.SortieTabView
-import javafx.application.Platform
+import javafx.animation.PauseTransition
 import javafx.fxml.FXML
 import javafx.geometry.Side
 import javafx.scene.control.ComboBox
@@ -37,6 +38,7 @@ import javafx.scene.control.SplitMenuButton
 import javafx.scene.control.TabPane
 import javafx.scene.layout.HBox
 import javafx.stage.WindowEvent
+import javafx.util.Duration
 import org.slf4j.LoggerFactory
 import tornadofx.*
 import java.awt.Desktop
@@ -76,6 +78,25 @@ class KagaView {
         createBindings()
         checkStartStopButton()
         preferencesTabController.testApiKey()
+        registerShortcuts()
+    }
+
+    private fun registerShortcuts() {
+        with(Kaga.CONFIG) {
+            val pause = PauseTransition(Duration.seconds(1.5))
+            val listener: (String) -> Unit = { shortcut ->
+                if (shortcut.length > 1) {
+                    GlobalShortcutHandler.registerShortcut("StartStopScript", shortcut, ::onStartStopButton)
+                } else {
+                    GlobalShortcutHandler.deregisterShortcut("StartStopScript")
+                }
+            }
+            listener(startStopScriptShortcut)
+            startStopScriptShortcutProperty.addListener { _, _, newVal ->
+                pause.setOnFinished { listener(newVal) }
+                pause.playFromStart()
+            }
+        }
     }
 
     private fun createBindings() {
@@ -182,22 +203,24 @@ class KagaView {
 
     private fun startKancolleAuto(saveConfig: Boolean = true) {
         thread {
-            Platform.runLater {
+            runLater {
                 kagaStatus.text = runningText
                 startStopButton.text = "Stop"
                 checkStartStopButton()
                 profileSelectionHBox.isDisable = true
             }
             Kaga.KCAUTO_KAI.startAndWait(saveConfig)
-            Platform.runLater {
+            runLater {
                 kagaStatus.text = notRunningText
                 startStopButton.text = "Start"
                 checkStartStopButton()
                 profileSelectionHBox.isDisable = false
             }
         }
-        Kaga.CONSOLE_STAGE.toFront()
-        Kaga.STATS_STAGE.toFront()
+        runLater {
+            Kaga.CONSOLE_STAGE.toFront()
+            Kaga.STATS_STAGE.toFront()
+        }
     }
 
     private fun checkStartStopButton() {

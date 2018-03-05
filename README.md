@@ -20,10 +20,9 @@ WE SHALL NOT BE HELD LIABLE FOR THE EXCESSIVE SALT CREATED IF YOU ARE BANNED OR 
 - Prevents lockscreen(configurable) in case you're too lazy to turn off your screensaver
 - Tooltips to help you configure KCAuto-Kai, press Shift Key while hovering over an option to see what it does
 - Statistics to help you know what the script is doing! eg. Buckets used, sorties per hour etc. (See screenshots)
-
-Currently under development:
-- UI renewal in certain submenus
-- Discord integration for notifications on crashes and resource queries using YuuBot, remember to join our [Discord Server](#want-to-chat)
+- Discord integration, basic crash notification and script status queries via YuuBot, a sassy bot that resides in our server.
+- Global shortcut key that can be rebinded to start and stop the script even when your mouse is out of control.
+- KC3 Ship list importer for convenience when configuring the ShipSwitcher module.
 
 # Installation and Usage
 
@@ -67,10 +66,8 @@ Configuring the formations for each node is easy with a dropdown list:
 Statistics window for some of you nerds:
 ![Statistics window](screenshots/Main_and_Stats_window.png?raw=true)
 
-Discord integration in the works for a crash notifications and script status queries  
-(Currently under development, future updates will contain more stats)
-![Discord integration](screenshots/Discord_Integration.png?raw=true)
-
+Discord integration available via YuuBot on our discord server. Crash notifications and queries can be executed to check on your scripts status. For more information [go check out the wiki page on Discord integration.](https://github.com/waicool20/KAGA/wiki/KAGA-Discord-Integration)
+![Discord integration](https://camo.githubusercontent.com/67060cb4367408a5cf70613cac2cc9f8492ac9b5/68747470733a2f2f692e696d6775722e636f6d2f3639636d6175452e706e673f7261773d74727565)
 
 # Troubleshooting
 

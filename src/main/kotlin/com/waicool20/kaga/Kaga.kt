@@ -26,10 +26,12 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.waicool20.kaga.config.KagaConfig
 import com.waicool20.kaga.config.KancolleAutoProfile
+import com.waicool20.kaga.handlers.GlobalShortcutHandler
 import com.waicool20.kaga.handlers.KeyboardIncrementHandler
 import com.waicool20.kaga.handlers.MouseIncrementHandler
 import com.waicool20.kaga.handlers.ToolTipHandler
 import com.waicool20.kaga.kcauto.KancolleAutoKai
+import com.waicool20.kaga.kcauto.YuuBot
 import com.waicool20.kaga.util.AlertFactory
 import com.waicool20.kaga.util.LineListenerOutputStream
 import com.waicool20.kaga.util.TeeOutputStream
@@ -64,19 +66,24 @@ import kotlin.math.abs
 class KagaApp : Application() {
     private val logger = LoggerFactory.getLogger(javaClass)
     override fun start(stage: Stage) {
-        val logLevel = parameters.named.getOrElse("log", { "" })
-        if (logLevel != "") {
-            val level = Level.toLevel(logLevel)
-            logger.info("Logging level was passed as argument, setting logging level to ${level.levelStr}")
-            Kaga.setLogLevel(level)
+        if (parameters.unnamed.contains("--use-local-server")) {
+            logger.info("Using local server for API endpoint!")
+            YuuBot.useLocalServer = true
+        }
+        if (parameters.unnamed.contains("--log-keys")) {
+            logger.info("Logging key presses to console")
+            GlobalShortcutHandler.logKeys = true
         }
         logger.info("Starting KAGA")
         FX.registerApplication(application = this, primaryStage = stage)
         Kaga.ROOT_STAGE = stage
         stage.setOnHidden { Kaga.exit() }
-
         if (Kaga.CONFIG.isValid()) {
-            if (logLevel.isEmpty()) {
+            parameters.named["log"]?.let {
+                val level = Level.toLevel(it)
+                logger.info("Logging level was passed as argument, setting logging level to ${level.levelStr}")
+                Kaga.setLogLevel(level)
+            } ?: run {
                 logger.info("No logging level was found in the arguments...using the config level of ${Kaga.CONFIG.logLevel()}")
                 Kaga.setLogLevel(Level.toLevel(Kaga.CONFIG.logLevel()))
             }
@@ -205,7 +212,7 @@ object Kaga {
                 val json = mapper.readTree(URL("https://api.github.com/repos/waicool20/Kaga/releases/latest"))
                 val latestVersion = VersionInfo(json.at("/tag_name").asText())
                 if (latestVersion > VERSION_INFO) {
-                    Platform.runLater {
+                    runLater {
                         Alert(Alert.AlertType.INFORMATION, "KAGA - Update").apply {
                             headerText = null
                             val pane = FlowPane()
@@ -230,7 +237,7 @@ object Kaga {
                     }
                 } else {
                     if (showNoUpdatesDialog) {
-                        Platform.runLater {
+                        runLater {
                             AlertFactory.info(
                                     content = """
                                     No updates so far...
