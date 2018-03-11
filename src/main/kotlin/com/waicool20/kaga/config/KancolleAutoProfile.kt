@@ -38,9 +38,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.util.*
+import kotlin.concurrent.thread
 
-class KancolleAutoProfile(
-        name: String = KancolleAutoProfile.Loader.DEFAULT_NAME,
+data class KancolleAutoProfile(
         val general: General = General(),
         val scheduledSleep: ScheduledSleep = ScheduledSleep(),
         /* TODO Disabled temporarily till kcauto-kai is finalized
@@ -51,8 +51,30 @@ class KancolleAutoProfile(
         val shipSwitcher: ShipSwitcher = ShipSwitcher(),
         val quests: Quests = Quests()
 ) {
+    constructor(
+            name: String,
+            general: General = General(),
+            scheduledSleep: ScheduledSleep = ScheduledSleep(),
+            expeditions: Expeditions = Expeditions(),
+            pvp: Pvp = Pvp(),
+            sortie: Sortie = Sortie(),
+            shipSwitcher: ShipSwitcher = ShipSwitcher(),
+            quests: Quests = Quests()
+    ): this(general, scheduledSleep, expeditions, pvp, sortie, shipSwitcher, quests) {
+        this.name = name
+    }
+
+    init {
+        general.pauseProperty.addListener { _, _, newVal ->
+            thread {
+                val text = path().toFile().readText().replace(Regex("Pause.+"), "Pause = ${newVal.toString().capitalize()}").toByteArray()
+                Files.write(path(), text, StandardOpenOption.TRUNCATE_EXISTING)
+            }
+        }
+    }
+
     private val logger = LoggerFactory.getLogger(KancolleAutoProfile::class.java)
-    @JsonIgnore var nameProperty = name.toProperty()
+    @JsonIgnore var nameProperty = KancolleAutoProfile.Loader.DEFAULT_NAME.toProperty()
     @get:JsonProperty var name by nameProperty
 
     fun path(): Path = Kaga.CONFIG_DIR.resolve("$name-config.ini")
@@ -120,7 +142,7 @@ class KancolleAutoProfile(
                             val backupPath = (0..999).asSequence()
                                     .map { "config.ini.bak$it" }
                                     .map { path.resolveSibling(it) }
-                                    .first { Files.exists(it) }
+                                    .first { Files.notExists(it) }
                             loaderLogger.info("Copied backup of existing configuration to $backupPath")
                             Files.copy(path, backupPath)
                             DEFAULT_NAME
@@ -129,15 +151,15 @@ class KancolleAutoProfile(
 
                 return KancolleAutoProfile(
                         name,
-                        loadSection(ini),
-                        loadSection(ini),
+                        general = loadSection(ini),
+                        scheduledSleep = loadSection(ini),
                         /* TODO Disabled temporarily till kcauto-kai is finalized
                         scheduledStop,*/
-                        loadSection(ini),
-                        loadSection(ini, "PvP"),
-                        loadSection(ini, "Combat"),
-                        loadSection(ini),
-                        loadSection(ini)
+                        expeditions = loadSection(ini),
+                        pvp = loadSection(ini, "PvP"),
+                        sortie = loadSection(ini, "Combat"),
+                        shipSwitcher = loadSection(ini),
+                        quests = loadSection(ini)
                 ).apply {
                     loaderLogger.info("Loading KancolleAuto profile was successful")
                     loaderLogger.debug("Loaded $this")
@@ -151,7 +173,7 @@ class KancolleAutoProfile(
 
         private inline fun <reified T> loadSection(ini: Wini, section: String? = null): T {
             val name = T::class.simpleName
-            return ini[section ?: name]?.toObject<T>() ?: run {
+            return ini[section ?: name]?.toObject() ?: run {
                 error("Could not parse $name section! Using defaults for it!")
             }.let { T::class.java.newInstance() }
         }
@@ -232,7 +254,8 @@ class KancolleAutoProfile(
     }
 
     class General(
-            program: String = "Chrome"
+            program: String = "Chrome",
+            pause: Boolean = false
             /* TODO Disabled temporarily till kcauto-kai is finalized
             recoveryMethod: RecoveryMethod = RecoveryMethod.KC3,
             basicRecovery: Boolean = true,
@@ -244,6 +267,8 @@ class KancolleAutoProfile(
         val programProperty = program.toProperty()
         @JsonIgnore @IniConfig(key = "JSTOffset", shouldRead = false)
         val jstOffsetProperty = ((TimeZone.getDefault().rawOffset - TimeZone.getTimeZone("Japan").rawOffset) / 3600000).toProperty()
+        @JsonIgnore @IniConfig(key = "Pause")
+        val pauseProperty = pause.toProperty()
         /* TODO Disabled temporarily till kcauto-kai is finalized
         @JsonIgnore @IniConfig(key = "RecoveryMethod") val recoveryMethodProperty = SimpleObjectProperty<RecoveryMethod>(recoveryMethod)
         @JsonIgnore @IniConfig(key = "BasicRecovery") val basicRecoveryProperty: BooleanProperty = basicRecovery.toProperty()
@@ -253,6 +278,7 @@ class KancolleAutoProfile(
 
         @get:JsonProperty var program by programProperty
         @get:JsonProperty var jstOffset by jstOffsetProperty
+        @get:JsonProperty var pause by pauseProperty
         /* TODO Disabled temporarily till kcauto-kai is finalized
         @get:JsonProperty var recoveryMethod by recoveryMethodProperty
         @get:JsonProperty var basicRecovery by basicRecoveryProperty
@@ -262,20 +288,48 @@ class KancolleAutoProfile(
     }
 
     class ScheduledSleep(
-            enabled: Boolean = true,
-            startTime: String = "0030",
-            length: Double = 3.5
+            sleepEnabled: Boolean = false,
+            sleepStartTime: String = "0030",
+            sleepLength: Double = 3.5,
+            expSleepEnabled: Boolean = false,
+            expSleepStartTime: String = "0030",
+            expSleepLength: Double = 3.5,
+            sortieSleepEnabled: Boolean = false,
+            sortieSleepStartTime: String = "0030",
+            sortieSleepLength: Double = 3.5
     ) {
-        @JsonIgnore @IniConfig(key = "Enabled")
-        val enabledProperty = enabled.toProperty()
-        @JsonIgnore @IniConfig(key = "StartTime")
-        val startTimeProperty = startTime.toProperty()
+        @JsonIgnore @IniConfig(key = "SleepEnabled")
+        val sleepEnabledProperty = sleepEnabled.toProperty()
+        @JsonIgnore @IniConfig(key = "SleepStartTime")
+        val sleepStartTimeProperty = sleepStartTime.toProperty()
         @JsonIgnore @IniConfig(key = "SleepLength")
-        val lengthProperty = length.toProperty()
+        val sleepLengthProperty = sleepLength.toProperty()
 
-        @get:JsonProperty var enabled by enabledProperty
-        @get:JsonProperty var startTime by startTimeProperty
-        @get:JsonProperty var length by lengthProperty
+        @JsonIgnore @IniConfig(key = "ExpeditionSleepEnabled")
+        val expSleepEnabledProperty = expSleepEnabled.toProperty()
+        @JsonIgnore @IniConfig(key = "ExpeditionSleepStartTime")
+        val expSleepStartTimeProperty = expSleepStartTime.toProperty()
+        @JsonIgnore @IniConfig(key = "ExpeditionSleepLength")
+        val expSleepLengthProperty = expSleepLength.toProperty()
+
+        @JsonIgnore @IniConfig(key = "CombatSleepEnabled")
+        val sortieSleepEnabledProperty = sortieSleepEnabled.toProperty()
+        @JsonIgnore @IniConfig(key = "CombatSleepStartTime")
+        val sortieSleepStartTimeProperty = sortieSleepStartTime.toProperty()
+        @JsonIgnore @IniConfig(key = "CombatSleepLength")
+        val sortieSleepLengthProperty = sortieSleepLength.toProperty()
+
+        @get:JsonProperty var sleepEnabled by sleepEnabledProperty
+        @get:JsonProperty var sleepStartTime by sleepStartTimeProperty
+        @get:JsonProperty var sleepLength by sleepLengthProperty
+
+        @get:JsonProperty var expSleepEnabled by expSleepEnabledProperty
+        @get:JsonProperty var expSleepStartTime by expSleepStartTimeProperty
+        @get:JsonProperty var expSleepLength by expSleepLengthProperty
+
+        @get:JsonProperty var sortieSleepEnabled by sortieSleepEnabledProperty
+        @get:JsonProperty var sortieSleepStartTime by sortieSleepStartTimeProperty
+        @get:JsonProperty var sortieSleepLength by sortieSleepLengthProperty
     }
 
     /* TODO Disabled temporarily till kcauto-kai is finalized

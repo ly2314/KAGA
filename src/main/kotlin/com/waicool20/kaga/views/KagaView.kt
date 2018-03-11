@@ -35,6 +35,7 @@ import javafx.scene.control.*
 import javafx.scene.layout.HBox
 import javafx.stage.WindowEvent
 import javafx.util.Duration
+import org.controlsfx.glyphfont.Glyph
 import org.slf4j.LoggerFactory
 import tornadofx.*
 import java.awt.Desktop
@@ -53,6 +54,9 @@ class KagaView {
 
     @FXML private lateinit var kagaStatus: Label
     @FXML private lateinit var startStopButton: SplitMenuButton
+    @FXML private lateinit var saveButton: Button
+    @FXML private lateinit var deleteButton: Button
+    @FXML private lateinit var pauseButton: ToggleButton
     @FXML private lateinit var profileNameComboBox: ComboBox<String>
     @FXML private lateinit var profileSelectionHBox: HBox
     @FXML private lateinit var tabpane: TabPane
@@ -77,6 +81,16 @@ class KagaView {
         checkStartStopButton()
         preferencesTabController.testApiKey()
         registerShortcuts()
+        saveButton.graphic = Glyph("FontAwesome", "SAVE")
+        deleteButton.graphic = Glyph("FontAwesome", "TRASH")
+        pauseButton.graphic = Glyph("FontAwesome", "PAUSE")
+        pauseButton.selectedProperty().addListener { _, _, newVal ->
+            if (newVal) {
+                logger.info("Script will be paused on the next cycle.")
+            } else {
+                logger.info("Script will resume shortly.")
+            }
+        }
     }
 
     private val canSwitch = AtomicBoolean(true)
@@ -129,6 +143,7 @@ class KagaView {
 
     private fun createBindings() {
         profileNameComboBox.bind(Kaga.PROFILE.nameProperty)
+        pauseButton.selectedProperty().bindBidirectional(Kaga.PROFILE.general.pauseProperty)
     }
 
     @FXML
@@ -178,7 +193,7 @@ class KagaView {
                 logger.error(warning)
                 runLater {
                     Tooltip("XX $warning").apply {
-                        fadeAfter(700)
+                        fadeAfter(5000)
                         showAt(profileNameComboBox, TooltipSide.TOP_LEFT)
                     }
                 }
@@ -241,6 +256,7 @@ class KagaView {
             runLater {
                 kagaStatus.text = runningText
                 startStopButton.text = "Stop"
+                pauseButton.isDisable = false
                 checkStartStopButton()
                 profileSelectionHBox.isDisable = true
             }
@@ -248,6 +264,7 @@ class KagaView {
             runLater {
                 kagaStatus.text = notRunningText
                 startStopButton.text = "Start"
+                pauseButton.isDisable = true
                 checkStartStopButton()
                 profileSelectionHBox.isDisable = false
             }
@@ -261,8 +278,8 @@ class KagaView {
     private fun checkStartStopButton() {
         startStopButton.apply {
             val color = if (text == "Start") "green" else "red"
-            stylesheets.clear()
-            stylesheets.add("styles/${color}style.css")
+            styleClass.removeAll { it.endsWith("-split-menu") }
+            styleClass.add("$color-split-menu")
             items.partition { it.id.contains(text, true) }.let {
                 it.first.forEach { it.isVisible = true }
                 it.second.forEach { it.isVisible = false }
