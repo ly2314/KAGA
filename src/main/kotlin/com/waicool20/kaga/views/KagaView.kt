@@ -25,7 +25,6 @@ import com.waicool20.kaga.config.KancolleAutoProfile
 import com.waicool20.kaga.handlers.GlobalShortcutHandler
 import com.waicool20.kaga.util.*
 import com.waicool20.kaga.views.tabs.*
-import com.waicool20.kaga.views.tabs.quests.QuestsTabView
 import com.waicool20.kaga.views.tabs.shipswitcher.ShipSwitcherTabView
 import com.waicool20.kaga.views.tabs.sortie.SortieTabView
 import javafx.animation.PauseTransition
@@ -84,13 +83,6 @@ class KagaView {
         saveButton.graphic = Glyph("FontAwesome", "SAVE")
         deleteButton.graphic = Glyph("FontAwesome", "TRASH")
         pauseButton.graphic = Glyph("FontAwesome", "PAUSE")
-        pauseButton.selectedProperty().addListener { _, _, newVal ->
-            if (newVal) {
-                logger.info("Script will be paused on the next cycle.")
-            } else {
-                logger.info("Script will resume shortly.")
-            }
-        }
     }
 
     private val canSwitch = AtomicBoolean(true)
@@ -106,7 +98,7 @@ class KagaView {
                 }
             }
             listener(startStopScriptShortcut)
-            startStopScriptShortcutProperty.addListener { _, _, newVal ->
+            startStopScriptShortcutProperty.addListener("StartStopScriptShortcutProperty") { newVal ->
                 pause.setOnFinished { listener(newVal) }
                 pause.playFromStart()
             }
@@ -144,6 +136,13 @@ class KagaView {
     private fun createBindings() {
         profileNameComboBox.bind(Kaga.PROFILE.nameProperty)
         pauseButton.selectedProperty().bindBidirectional(Kaga.PROFILE.general.pauseProperty)
+        pauseButton.selectedProperty().addListener("PauseButtonListener") { newVal ->
+            if (newVal) {
+                logger.info("Script will be paused on the next cycle.")
+            } else {
+                logger.info("Script will resume shortly.")
+            }
+        }
     }
 
     @FXML
@@ -238,6 +237,8 @@ class KagaView {
             startKancolleAuto()
         } else {
             Kaga.KCAUTO_KAI.stop()
+            pauseButton.isDisable = true
+            pauseButton.isSelected = false
         }
     }
 
@@ -265,6 +266,7 @@ class KagaView {
                 kagaStatus.text = notRunningText
                 startStopButton.text = "Start"
                 pauseButton.isDisable = true
+                pauseButton.isSelected = false
                 checkStartStopButton()
                 profileSelectionHBox.isDisable = false
             }

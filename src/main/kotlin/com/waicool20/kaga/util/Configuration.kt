@@ -52,9 +52,9 @@ inline fun <reified T> Profile.Section.toObject(): T {
 
                     when {
                         isList || isSet -> {
-                            val items = this[iniConfig.key]?.split("\\s?,\\s?".toRegex())
+                            val items = this[iniConfig.key]?.split(Regex("\\s?,\\s?"))
                                     ?.filter { it.isNotBlank() }
-                                    ?.map { value ->
+                                    ?.mapNotNull { value ->
                                         if (genericKClass.isEnum()) {
                                             genericKClass.enumValueOf(value)
                                         } else {
@@ -97,8 +97,9 @@ fun Profile.Section.fromObject(obj: Any) {
             .mapNotNull { it as? KProperty1<Any, WritableValue<*>> }
             .forEach { kProperty ->
                 val property = kProperty.get(obj)
-                val iniConfig = kProperty.findAnnotation<IniConfig>().takeIf { it != null } ?: return@forEach
-                add(iniConfig.key, property.value.toString().replace("\\[|]".toRegex(), ""))
+                val iniConfig = kProperty.findAnnotation<IniConfig>().takeIf { it != null }
+                        ?: return@forEach
+                add(iniConfig.key, property.value.toString().replace("[\\[\\]]".toRegex(), ""))
             }
 }
 

@@ -22,6 +22,7 @@ package com.waicool20.kaga.views.tabs
 
 import com.waicool20.kaga.Kaga
 import com.waicool20.kaga.config.KancolleAutoProfile
+import com.waicool20.kaga.util.addListener
 import javafx.beans.property.SimpleListProperty
 import javafx.collections.FXCollections
 import javafx.fxml.FXML
@@ -75,10 +76,12 @@ class LbasTabView {
             list: SimpleListProperty<String>,
             label: Label
     ) {
+        val groups = Kaga.PROFILE.sortie.lbasGroups
+        val group = choice1Prop.name.first { it.isDigit() }.toString()
         val box1 = choice1Prop.get()
         val box2 = choice2Prop.get()
-        val choice1 = list.getOrNull(0) ?: ""
-        val choice2 = list.getOrNull(1) ?: ""
+        val choice1 = list.getOrNull(0) ?: if (groups.contains(group)) "Defense" else ""
+        val choice2 = list.getOrNull(1) ?: if (groups.contains(group)) "Defense" else ""
 
         box1.selectionModel.select(choice1)
         box2.selectionModel.select(choice2)
@@ -87,20 +90,26 @@ class LbasTabView {
             val items = listOf(box1.selectedItem, box2.selectedItem).filterNot { it.isNullOrBlank() }
             val isOk = items.size == 2 && items.count { it == "Defense" } != 1
             label.isVisible = !isOk
-            val group = choice1Prop.name.first { it.isDigit() }.toString()
+
             if (isOk) {
-                Kaga.PROFILE.sortie.lbasGroups.add(group)
+                groups.add(group)
             } else {
-                Kaga.PROFILE.sortie.lbasGroups.remove(group)
+                groups.remove(group)
             }
-            if (updateList && isOk) list.setAll(items.filterNot { it == "Defense" })
+            if (updateList) {
+                if (isOk) {
+                    list.setAll(items.filterNot { it == "Defense" })
+                } else {
+                    list.clear()
+                }
+            }
         }
 
-        box1.selectionModel.selectedItemProperty().addListener { _, _, _ ->
+        box1.selectionModel.selectedItemProperty().addListener("LBAS${group}Box1") { _ ->
             update(true)
         }
 
-        box2.selectionModel.selectedItemProperty().addListener { _, _, _ ->
+        box2.selectionModel.selectedItemProperty().addListener("LBAS${group}Box2") { _ ->
             update(true)
         }
         update(false)
