@@ -24,12 +24,14 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.waicool20.kaga.Kaga
 import com.waicool20.kaga.util.LockPreventer
 import com.waicool20.kaga.util.StreamGobbler
+import com.waicool20.kaga.util.gobbleStream
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
 
@@ -37,8 +39,7 @@ class KancolleAutoKai {
     private val template by lazy { Kaga::class.java.classLoader.getResourceAsStream("crashlog_template.md").bufferedReader().readText() }
     private val logger = LoggerFactory.getLogger(javaClass)
     private var kancolleAutoProcess: Process? = null
-    private var streamGobbler: StreamGobbler? = null
-    private var shouldStop = false
+    private val shouldStop = AtomicBoolean(false)
 
     val statsTracker = KancolleAutoKaiStatsTracker
 
@@ -56,53 +57,53 @@ class KancolleAutoKai {
                 "${Kaga.CONFIG.kcaKaiRootDirPath.resolve("kcauto-kai.sikuli")}",
                 "--", "cfg", "${Kaga.PROFILE.path()}"
         )
-        val lockPreventer = if (Kaga.CONFIG.preventLock) LockPreventer() else null
+        val lockPreventer = LockPreventer().takeIf { Kaga.CONFIG.preventLock }
         statsTracker.startNewSession()
-        shouldStop = false
+        shouldStop.set(false)
         KCAutoLoop@ while (true) {
             if (Kaga.CONFIG.clearConsoleOnStart) println("\u001b[2J\u001b[H") // Clear console
             logger.info("Starting new KCAuto-Kai session (Version: $version)")
             logger.debug("Launching with command: ${args.joinToString(" ")}")
             logger.debug("Session profile: ${jacksonObjectMapper().writeValueAsString(Kaga.PROFILE)}")
-            kancolleAutoProcess = ProcessBuilder(args).start()
+            kancolleAutoProcess = ProcessBuilder(args).start().gobbleStream()
             YuuBot.reportStats()
-            streamGobbler = StreamGobbler(kancolleAutoProcess).apply { run() }
             lockPreventer?.start()
             val exitVal = kancolleAutoProcess?.waitFor()
             logger.info("KCAuto-Kai session has terminated!")
-            logger.debug("Exit Value was $exitVal")
+            logger.debug("Exit value was $exitVal")
             lockPreventer?.stop()
-            YuuBot.reportStats()
             Kaga.PROFILE.general.pause = false
-            when (exitVal) {
-                0, 143 -> break@KCAutoLoop
-                else -> {
-                    if (shouldStop) {
-                        shouldStop = false
-                        logger.info("User initiated termination, exiting kancolle-auto process loop regardless...")
-                        break@KCAutoLoop
-                    }
-                    logger.info("KCAuto-Kai didn't terminate gracefully")
-                    YuuBot.reportStats()
-                    saveCrashLog()
-                    if (Kaga.CONFIG.autoRestartOnKCAutoCrash) {
-                        if (statsTracker.crashes < Kaga.CONFIG.autoRestartMaxRetries) {
-                            logger.info("Auto Restart enabled...attempting restart")
-                            statsTracker.trackNewChild()
-                        } else {
-                            logger.info("Auto restart retry limit reached, terminating current session.")
-                            break@KCAutoLoop
-                        }
+
+            val scriptCrashed = exitVal !in listOf(0, 143)
+            if (scriptCrashed) logger.info("KCAuto-Kai crashed!")
+
+            YuuBot.reportStats()
+
+            if (shouldStop.compareAndSet(true, false)) {
+                logger.info("User initiated termination, killing script regardless...")
+                break@KCAutoLoop
+            }
+
+            if (scriptCrashed) {
+                saveCrashLog()
+                if (Kaga.CONFIG.autoRestartOnKCAutoCrash) {
+                    if (statsTracker.crashes < Kaga.CONFIG.autoRestartMaxRetries) {
+                        logger.info("Auto Restart enabled...attempting restart")
+                        statsTracker.trackNewChild()
+                        continue@KCAutoLoop
+                    } else {
+                        logger.info("Auto restart retry limit reached, terminating current session.")
                     }
                 }
             }
+            break@KCAutoLoop
         }
     }
 
     fun stop() {
         logger.info("Terminating current KCAuto-Kai session")
         kancolleAutoProcess?.destroy()
-        shouldStop = true
+        shouldStop.set(true)
     }
 
     fun stopAtPort() {
