@@ -32,9 +32,7 @@ import com.waicool20.kaga.handlers.MouseIncrementHandler
 import com.waicool20.kaga.handlers.ToolTipHandler
 import com.waicool20.kaga.kcauto.KancolleAutoKai
 import com.waicool20.kaga.kcauto.YuuBot
-import com.waicool20.kaga.util.AlertFactory
-import com.waicool20.kaga.util.LineListenerOutputStream
-import com.waicool20.kaga.util.TeeOutputStream
+import com.waicool20.kaga.util.*
 import com.waicool20.kaga.views.ConsoleView
 import com.waicool20.kaga.views.PathChooserView
 import com.waicool20.kaga.views.StatsView
@@ -53,6 +51,7 @@ import javafx.scene.layout.FlowPane
 import javafx.stage.Modality
 import javafx.stage.Stage
 import org.sikuli.script.ImagePath
+import org.sikuli.script.Screen
 import org.slf4j.LoggerFactory
 import tornadofx.*
 import java.awt.Desktop
@@ -168,17 +167,7 @@ object Kaga {
         private set
 
     fun startMainApplication() {
-        thread {
-            loadSikuliX()
-            try {
-                logger.info("Testing SikuliX")
-                ImagePath.add(ClassLoader.getSystemClassLoader().getResource("images"))
-                logger.info("SikuliX is working!")
-                SIKULI_WORKING = true
-            } catch (e: NoClassDefFoundError) {
-                logger.warn("SikuliX isn't working, functionality disabled!")
-            }
-        }
+        loadSikuliX()
         CONFIG.currentProfile = PROFILE.name
         CONFIG.save()
         with(ROOT_STAGE) {
@@ -194,8 +183,9 @@ object Kaga {
         }
         if (CONFIG.showDebugOnStart) CONSOLE_STAGE.show()
         startKCAutoListener()
-        if (CONFIG.showStatsOnStart) STATS_STAGE.show()
         checkForUpdates()
+        testSikuliX()
+        if (CONFIG.showStatsOnStart) STATS_STAGE.show()
     }
 
     fun startPathChooser() = with(Stage()) {
@@ -210,6 +200,7 @@ object Kaga {
     }
 
     fun exit() {
+        System.setSecurityManager(null)
         KCAUTO_KAI.stop()
         Platform.exit()
         System.exit(0)
@@ -277,6 +268,35 @@ object Kaga {
         URLClassLoader::class.declaredMemberFunctions.find { it.name == "addURL" }?.apply {
             isAccessible = true
             call(cl, CONFIG.sikulixJarPath.toUri().toURL())
+        }
+    }
+
+    private fun testSikuliX() {
+        thread {
+            try {
+                preventSystemExit {
+                    logger.info("Testing SikuliX")
+                    logger.info("Testing screen: ${Screen()}")
+                    logger.info("Loading images")
+                    ImagePath.add(ClassLoader.getSystemClassLoader().getResource("images"))
+                    SIKULI_WORKING = true
+                }
+            } catch (e: NoClassDefFoundError) {
+                logger.warn("SikuliX classes not found")
+            } catch (e: IllegalExitException) {
+                logger.warn("SikuliX ran into a fatal error and tried to exit the program")
+                logger.warn("SikuliX installation might be broken! Go reinstall!")
+            }
+            if (SIKULI_WORKING) {
+                logger.info("SikuliX is working!")
+            } else {
+                logger.warn("SikuliX isn't working, functionality disabled!")
+                runLater {
+                    AlertFactory.warn(
+                            content = "SikuliX isn't working, check logs for more details..."
+                    ).showAndWait()
+                }
+            }
         }
     }
 
