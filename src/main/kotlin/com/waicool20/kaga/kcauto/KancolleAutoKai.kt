@@ -23,9 +23,10 @@ package com.waicool20.kaga.kcauto
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.waicool20.kaga.Kaga
 import com.waicool20.kaga.util.LockPreventer
-import com.waicool20.kaga.util.StreamGobbler
 import com.waicool20.kaga.util.gobbleStream
+import com.waicool20.kaga.views.ConsoleView
 import org.slf4j.LoggerFactory
+import tornadofx.*
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
 import java.time.LocalDateTime
@@ -36,7 +37,6 @@ import kotlin.concurrent.thread
 
 
 class KancolleAutoKai {
-    private val template by lazy { Kaga::class.java.classLoader.getResourceAsStream("crashlog_template.md").bufferedReader().readText() }
     private val logger = LoggerFactory.getLogger(javaClass)
     private var kancolleAutoProcess: Process? = null
     private val shouldStop = AtomicBoolean(false)
@@ -65,15 +65,23 @@ class KancolleAutoKai {
             logger.info("Starting new KCAuto-Kai session (Version: $version)")
             logger.debug("Launching with command: ${args.joinToString(" ")}")
             logger.debug("Session profile: ${jacksonObjectMapper().writeValueAsString(Kaga.PROFILE)}")
-            kancolleAutoProcess = ProcessBuilder(args).start().gobbleStream()
-            YuuBot.reportStats()
+            // Start Processes
+            kancolleAutoProcess = ProcessBuilder(args).start()
             lockPreventer?.start()
+            val streamGobbler = kancolleAutoProcess?.gobbleStream()
+
+            YuuBot.reportStats()
+
+            // Wait for Termination
             val exitVal = kancolleAutoProcess?.waitFor()
+            streamGobbler?.waitFor()
+
             logger.info("KCAuto-Kai session has terminated!")
             logger.debug("Exit value was $exitVal")
             lockPreventer?.stop()
             Kaga.PROFILE.general.pause = false
 
+            // Detect Crash
             val scriptCrashed = exitVal !in listOf(0, 143)
             if (scriptCrashed) logger.info("KCAuto-Kai crashed!")
 
@@ -88,7 +96,11 @@ class KancolleAutoKai {
                 saveCrashLog()
                 if (Kaga.CONFIG.autoRestartOnKCAutoCrash) {
                     if (statsTracker.crashes < Kaga.CONFIG.autoRestartMaxRetries) {
-                        logger.info("Auto Restart enabled...attempting restart")
+                        logger.info("Auto restart is enabled...attempting restart in 3s")
+                        for (s in 3 downTo 1) {
+                            logger.info("Restart in ${s}s")
+                            TimeUnit.SECONDS.sleep(1)
+                        }
                         statsTracker.trackNewChild()
                         continue@KCAutoLoop
                     } else {
@@ -109,9 +121,7 @@ class KancolleAutoKai {
     fun stopAtPort() {
         logger.info("Will wait for any ongoing battle to finish first before terminating current KCAuto-Kai session!")
         thread {
-            while (!statsTracker.atPort) {
-                TimeUnit.MILLISECONDS.sleep(10)
-            }
+            while (!statsTracker.atPort) TimeUnit.MILLISECONDS.sleep(10)
             stop()
         }
     }
@@ -119,17 +129,19 @@ class KancolleAutoKai {
     fun isRunning() = kancolleAutoProcess != null && kancolleAutoProcess?.isAlive ?: false
 
     private fun saveCrashLog() {
+        val template = Kaga::class.java.classLoader.getResourceAsStream("crashlog_template.md").bufferedReader().readText()
+        val logs = find<ConsoleView>().logs()
         val crashTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH.mm.ss"))
         val logFile = Kaga.CONFIG.kcaKaiRootDirPath.resolve("crashes/$crashTime.log")
         if (Files.notExists(logFile)) Files.createDirectories(logFile.parent)
-        val log = template.replace("<DateTime>", crashTime)
+        val logSection = template.replace("<DateTime>", crashTime)
                 .replace("<Version>", version)
                 .replace("<Viewer>", Kaga.PROFILE.general.program)
                 .replace("<OS>", "${System.getProperty("os.name")} ${System.getProperty("os.version")} ${System.getProperty("os.arch")}")
                 .replace("<Config>", Kaga.PROFILE.asIniString())
-                .replace("<Log>", Kaga.LOG)
-        Files.write(logFile, log.toByteArray(), StandardOpenOption.CREATE)
-        YuuBot.reportCrash(CrashInfoDto(Kaga.LOG))
+                .replace("<Log>", logs)
+        Files.write(logFile, logSection.toByteArray(), StandardOpenOption.CREATE)
+        YuuBot.reportCrash(CrashInfoDto(logs))
         logger.info("Saved crash log to $logFile")
     }
 }

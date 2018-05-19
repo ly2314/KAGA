@@ -48,9 +48,6 @@ import kotlin.streams.toList
 
 
 class KagaView {
-    private val runningText = "KCAuto-Kai is running!"
-    private val notRunningText = "KCAuto-Kai is not running!"
-
     @FXML private lateinit var kagaStatus: Label
     @FXML private lateinit var startStopButton: SplitMenuButton
     @FXML private lateinit var saveButton: Button
@@ -223,11 +220,16 @@ class KagaView {
             return@run
         }
         val toDelete = name
-        if (delete()) {
-            profileNameComboBox.value = ""
-            AlertFactory.info(content = "Profile $toDelete was deleted").showAndWait()
-        } else {
-            AlertFactory.warn(content = warning).showAndWait()
+        confirm(
+                header = "Delete profile [$toDelete]?",
+                title = "Kaga - Profile Deletion Confirmation"
+        ) {
+            if (delete()) {
+                profileNameComboBox.value = ""
+                AlertFactory.info(content = "Profile $toDelete was deleted").showAndWait()
+            } else {
+                AlertFactory.warn(content = warning).showAndWait()
+            }
         }
     }
 
@@ -255,7 +257,7 @@ class KagaView {
     private fun startKancolleAuto(saveConfig: Boolean = true) {
         thread {
             runLater {
-                kagaStatus.text = runningText
+                kagaStatus.text = "KCAuto-Kai is running!"
                 startStopButton.text = "Stop"
                 pauseButton.isDisable = false
                 checkStartStopButton()
@@ -263,7 +265,7 @@ class KagaView {
             }
             Kaga.KCAUTO_KAI.startAndWait(saveConfig)
             runLater {
-                kagaStatus.text = notRunningText
+                kagaStatus.text = "KCAuto-Kai is not running!"
                 startStopButton.text = "Start"
                 pauseButton.isDisable = true
                 pauseButton.isSelected = false
