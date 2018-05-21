@@ -32,52 +32,88 @@
     "description": "If you have a slow computer/network connection, you may encounter frequent FindFailed errors. Increase this value by whole numbers (seconds) to increase the length of all sleep/wait timers to avoid this"
   },
   {
-    "id": "Scheduling-enableSleepCheckBox",
+    "id": "Sleep-enableScriptSleepCheckBox",
     "description": "Check this box if you want the script to automatically sleep/pause at set times. Highly recommended that you check this box if you run the script for a long period of time\n\nThis overrides the other sleep options"
   },
   {
-    "id": "Scheduling-invertSleepCheckBox",
+    "id": "Sleep-invertScriptSleepCheckBox",
     "description": "Check this box if you want to invert the sleep times"
   },
   {
-    "id": "Scheduling-sleepTimeLabel",
+    "id": "Sleep-scriptSleepTimeLabel",
     "description": "The script will sleep during the highlighted time, just move the range around to adjust your sleep time"
   },
   {
-    "id": "Scheduling-enableExpSleepCheckBox",
+    "id": "Sleep-enableExpSleepCheckBox",
     "description": "Check this box if you only want expeditions to automatically pause at set times. Highly recommended that you check this box if you run the script for a long period of time"
   },
   {
-    "id": "Scheduling-invertExpSleepCheckBox",
+    "id": "Sleep-invertExpSleepCheckBox",
     "description": "Check this box if you want to invert the expedition sleep times"
   },
   {
-    "id": "Scheduling-expSleepTimeLabel",
+    "id": "Sleep-expSleepTimeLabel",
     "description": "Expeditions will be paused during the highlighted time, just move the range around to adjust your sleep time"
   },
   {
-    "id": "Scheduling-enableSortieSleepCheckBox",
+    "id": "Sleep-enableSortieSleepCheckBox",
     "description": "Check this box if you only want sorties to automatically pause at set times. Highly recommended that you check this box if you run the script for a long period of time"
   },
   {
-    "id": "Scheduling-invertSortieSleepCheckBox",
+    "id": "Sleep-invertSortieSleepCheckBox",
     "description": "Check this box if you want to invert the sortie sleep times"
   },
   {
-    "id": "Scheduling-sortieSleepTimeLabel",
+    "id": "Sleep-sortieSleepTimeLabel",
     "description": "Sorties will be paused during the highlighted time, just move the range around to adjust your sleep time"
   },
   {
-    "id": "Scheduling-enableAutoStopButton",
+    "id": "Sleep-enableAutoStopButton",
     "description": "Set to True if you want the script to automatically stop and exit after a set number of hours, expeditions, sorties, or PvPs. You will have to manually restart the script after this"
   },
   {
-    "id": "Scheduling-modeLabel",
+    "id": "Sleep-modeLabel",
     "description": "Define what you want to base the stop count on"
   },
   {
-    "id": "Scheduling-countLabel",
+    "id": "Sleep-countLabel",
     "description": "Define how many of the above the script should perform before automatically stopping"
+  },
+  {
+    "id": "Stop-enableScriptStopCheckBox",
+    "description": "Check this box if you want the script to stop after meeting the conditions below"
+  },
+  {
+    "id": "Stop-scriptStopCountLabel",
+    "description": "Defines the amount of hours the script should run, after the running time exceeds this limit the script will stop, set to 0 to disable this condition"
+  },
+  {
+    "id": "Stop-scriptStopTimeLabel",
+    "description": "Defines a specific time when the script will stop, set hour or minute to -1 to disable this condition"
+  },
+  {
+    "id": "Stop-enableExpStopCheckBox",
+    "description": "Check this box if you want the script or only this module to stop after meeting the expedition conditions below, you can set the mode with the box adjacent to this checkbox\n\nRemember to set the mode to \"Module\" if you just want to stop this module!"
+  },
+  {
+    "id": "Stop-expStopCountLabel",
+    "description": "Defines the amount of expeditions the script/module should run, after the expedition count exceeds this limit the script/module will stop, set to 0 to disable this condition"
+  },
+  {
+    "id": "Stop-expStopTimeLabel",
+    "description": "Defines a specific time when the script/module will stop, set hour or minute to -1 to disable this condition"
+  },
+  {
+    "id": "Stop-enableSortieStopCheckBox",
+    "description": "Check this box if you want the script or only this module to stop after meeting the sortie conditions below, you can set the mode with the box adjacent to this checkbox\n\nRemember to set the mode to \"Module\" if you just want to stop this module!"
+  },
+  {
+    "id": "Stop-sortieStopCountLabel",
+    "description": "Defines the amount of sorties the script/module should run, after the sortie count exceeds this limit the script/module will stop, set to 0 to disable this condition"
+  },
+  {
+    "id": "Stop-sortieStopTimeLabel",
+    "description": "Defines a specific time when the script/module will stop, set hour or minute to -1 to disable this condition"
   },
   {
     "id": "Sortie-enableButton",
