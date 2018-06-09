@@ -23,10 +23,16 @@ package com.waicool20.kaga.views
 import com.waicool20.kaga.Kaga
 import com.waicool20.kaga.config.KancolleAutoProfile
 import com.waicool20.kaga.handlers.GlobalShortcutHandler
-import com.waicool20.kaga.util.*
 import com.waicool20.kaga.views.tabs.*
 import com.waicool20.kaga.views.tabs.shipswitcher.ShipSwitcherTabView
 import com.waicool20.kaga.views.tabs.sortie.SortieTabView
+import com.waicool20.waicoolutils.javafx.AlertFactory
+import com.waicool20.waicoolutils.javafx.addListener
+import com.waicool20.waicoolutils.javafx.listenDebounced
+import com.waicool20.waicoolutils.javafx.setSideWithHorizontalText
+import com.waicool20.waicoolutils.javafx.tooltips.TooltipSide
+import com.waicool20.waicoolutils.javafx.tooltips.fadeAfter
+import com.waicool20.waicoolutils.javafx.tooltips.showAt
 import javafx.animation.PauseTransition
 import javafx.fxml.FXML
 import javafx.geometry.Side
@@ -87,7 +93,6 @@ class KagaView {
 
     private fun registerShortcuts() {
         with(Kaga.CONFIG) {
-            val pause = PauseTransition(Duration.seconds(1.5))
             val listener: (String) -> Unit = { shortcut ->
                 if (shortcut.length > 1) {
                     GlobalShortcutHandler.registerShortcut("StartStopScript", shortcut, ::onStartStopButton)
@@ -96,9 +101,8 @@ class KagaView {
                 }
             }
             listener(startStopScriptShortcut)
-            startStopScriptShortcutProperty.addListener("StartStopScriptShortcutProperty") { newVal ->
-                pause.setOnFinished { listener(newVal) }
-                pause.playFromStart()
+            startStopScriptShortcutProperty.listenDebounced(1500, "StartStopScriptShortcutProperty") { newVal ->
+                listener(newVal)
             }
         }
 

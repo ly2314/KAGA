@@ -20,11 +20,10 @@
 
 package com.waicool20.kaga.kcauto
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.waicool20.kaga.Kaga
 import com.waicool20.kaga.util.LockPreventer
-import com.waicool20.kaga.util.gobbleStream
 import com.waicool20.kaga.views.ConsoleView
+import com.waicool20.waicoolutils.streams.gobbleStream
 import org.slf4j.LoggerFactory
 import tornadofx.*
 import java.nio.file.Files
@@ -64,7 +63,7 @@ class KancolleAutoKai {
             if (Kaga.CONFIG.clearConsoleOnStart) println("\u001b[2J\u001b[H") // Clear console
             logger.info("Starting new KCAuto-Kai session (Version: $version)")
             logger.debug("Launching with command: ${args.joinToString(" ")}")
-            logger.debug("Session profile: ${jacksonObjectMapper().writeValueAsString(Kaga.PROFILE)}")
+            logger.debug("Session profile: ${Kaga.PROFILE}")
             // Start Processes
             kancolleAutoProcess = ProcessBuilder(args).start()
             lockPreventer?.start()

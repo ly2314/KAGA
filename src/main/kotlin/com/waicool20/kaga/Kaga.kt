@@ -21,7 +21,6 @@
 package com.waicool20.kaga
 
 import ch.qos.logback.classic.Level
-import ch.qos.logback.classic.Logger
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.waicool20.kaga.config.KagaConfig
@@ -32,10 +31,13 @@ import com.waicool20.kaga.handlers.MouseIncrementHandler
 import com.waicool20.kaga.handlers.ToolTipHandler
 import com.waicool20.kaga.kcauto.KancolleAutoKai
 import com.waicool20.kaga.kcauto.YuuBot
-import com.waicool20.kaga.util.*
 import com.waicool20.kaga.views.ConsoleView
 import com.waicool20.kaga.views.PathChooserView
 import com.waicool20.kaga.views.StatsView
+import com.waicool20.waicoolutils.SikuliXLoader
+import com.waicool20.waicoolutils.javafx.AlertFactory
+import com.waicool20.waicoolutils.logging.LoggerUtils
+import com.waicool20.waicoolutils.logging.LoggingEventBus
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.fxml.FXMLLoader
@@ -50,21 +52,15 @@ import javafx.scene.input.MouseEvent.MOUSE_RELEASED
 import javafx.scene.layout.FlowPane
 import javafx.stage.Modality
 import javafx.stage.Stage
-import org.sikuli.script.ImagePath
-import org.sikuli.script.Screen
 import org.slf4j.LoggerFactory
 import tornadofx.*
 import java.awt.Desktop
-import java.io.PrintStream
 import java.net.URI
 import java.net.URL
-import java.net.URLClassLoader
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.concurrent.thread
 import kotlin.math.abs
-import kotlin.reflect.full.declaredMemberFunctions
-import kotlin.reflect.jvm.isAccessible
 
 class KagaApp : Application() {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -85,10 +81,10 @@ class KagaApp : Application() {
             parameters.named["log"]?.let {
                 val level = Level.toLevel(it)
                 logger.info("Logging level was passed as argument, setting logging level to ${level.levelStr}")
-                Kaga.setLogLevel(level)
+                LoggerUtils.setLogLevel(level)
             } ?: run {
                 logger.info("No logging level was found in the arguments...using the config level of ${Kaga.CONFIG.logLevel()}")
-                Kaga.setLogLevel(Level.toLevel(Kaga.CONFIG.logLevel()))
+                LoggerUtils.setLogLevel(Level.toLevel(Kaga.CONFIG.logLevel()))
             }
             logger.info("KAGA config is valid, starting main application")
             Kaga.startMainApplication()
@@ -163,11 +159,9 @@ object Kaga {
     }
 
     val KCAUTO_KAI by lazy { KancolleAutoKai() }
-    var SIKULI_WORKING = false
-        private set
 
     fun startMainApplication() {
-        loadSikuliX()
+        SikuliXLoader.loadAndTest(CONFIG.sikulixJarPath)
         CONFIG.currentProfile = PROFILE.name
         CONFIG.save()
         with(ROOT_STAGE) {
@@ -182,9 +176,9 @@ object Kaga {
             addEventFilter(MOUSE_RELEASED, handler)
         }
         if (CONFIG.showDebugOnStart) CONSOLE_STAGE.show()
-        startKCAutoListener()
+        LoggingEventBus.initialize()
         checkForUpdates()
-        testSikuliX()
+        reportSikuliXTestResults()
         if (CONFIG.showStatsOnStart) STATS_STAGE.show()
     }
 
@@ -193,10 +187,6 @@ object Kaga {
         isResizable = false
         scene = Scene(find(PathChooserView::class).root)
         show()
-    }
-
-    fun setLogLevel(level: Level) {
-        (LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger).level = level
     }
 
     fun exit() {
@@ -263,45 +253,17 @@ object Kaga {
         }
     }
 
-    private fun loadSikuliX() {
-        val cl = ClassLoader.getSystemClassLoader()
-        URLClassLoader::class.declaredMemberFunctions.find { it.name == "addURL" }?.apply {
-            isAccessible = true
-            call(cl, CONFIG.sikulixJarPath.toUri().toURL())
-        }
-    }
-
-    private fun testSikuliX() {
-        thread {
-            try {
-                preventSystemExit {
-                    logger.info("Testing SikuliX")
-                    logger.info("Testing screen: ${Screen()}")
-                    logger.info("Loading images")
-                    ImagePath.add(ClassLoader.getSystemClassLoader().getResource("images"))
-                    SIKULI_WORKING = true
-                }
-            } catch (e: NoClassDefFoundError) {
-                logger.warn("SikuliX classes not found")
-            } catch (e: IllegalExitException) {
-                logger.warn("SikuliX ran into a fatal error and tried to exit the program")
-                logger.warn("SikuliX installation might be broken! Go reinstall!")
-            }
-            if (SIKULI_WORKING) {
-                logger.info("SikuliX is working!")
-            } else {
-                logger.warn("SikuliX isn't working, functionality disabled!")
-                runLater {
-                    AlertFactory.warn(
-                            content = "SikuliX isn't working, check logs for more details..."
-                    ).showAndWait()
-                }
+    private fun reportSikuliXTestResults() {
+        if (SikuliXLoader.SIKULI_WORKING) {
+            logger.info("SikuliX is working!")
+            SikuliXLoader.loadImagePath(ClassLoader.getSystemClassLoader().getResource("images"))
+        } else {
+            logger.warn("SikuliX isn't working, functionality disabled!")
+            runLater {
+                AlertFactory.warn(
+                        content = "SikuliX isn't working, check logs for more details..."
+                ).showAndWait()
             }
         }
-    }
-
-    private fun startKCAutoListener() = LineListenerOutputStream().let {
-        System.setOut(PrintStream(TeeOutputStream(System.out, it)))
-        System.setErr(PrintStream(TeeOutputStream(System.err, it)))
     }
 }

@@ -20,9 +20,9 @@
 
 package com.waicool20.kaga.kcauto
 
-import com.waicool20.kaga.Kaga
-import com.waicool20.kaga.util.binarizeImage
-import com.waicool20.kaga.util.scale
+import com.waicool20.waicoolutils.SikuliXLoader
+import com.waicool20.waicoolutils.binarizeImage
+import com.waicool20.waicoolutils.scale
 import org.sikuli.script.Region
 import org.sikuli.script.Screen
 import org.sikuli.script.TextRecognizer
@@ -39,7 +39,7 @@ data class Resources(
     companion object {
         private val logger = LoggerFactory.getLogger(Resources::class.java)
         fun readResources(): Resources {
-            if (Kaga.SIKULI_WORKING) {
+            if (SikuliXLoader.SIKULI_WORKING) {
                 Screen().exists("fuel.png")?.apply {
                     val fuelCountRegion = Region(x + 25, y, 44, 17)
                     val ammoCountRegion = Region(x + 25, y + 19, 44, 17)
@@ -59,7 +59,7 @@ data class Resources(
                 }
                 logger.warn("Resources unreadable, maybe something is blocking it.")
             }
-            return Resources(-1, -1, -1 ,-1, -1, -1)
+            return Resources(-1, -1, -1, -1, -1, -1)
         }
 
         private val numberReplacements = mapOf(
